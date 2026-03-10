@@ -1,0 +1,15 @@
+{
+  "name": "hemp-discord-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for hemp industry research and daily discussions on Cloudflare Workers",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "register": "node scripts/register-commands.js"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

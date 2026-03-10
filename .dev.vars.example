@@ -1,0 +1,8 @@
+# Discord Bot Credentials
+DISCORD_TOKEN=your-bot-token-here
+DISCORD_PUBLIC_KEY=your-public-key-here
+DISCORD_APPLICATION_ID=your-application-id-here
+
+# Test Server Configuration
+DISCORD_TEST_GUILD_ID=your-test-guild-id-here
+DISCORD_TEST_CHANNEL_ID=your-test-channel-id-here
