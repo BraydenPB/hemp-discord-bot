@@ -1,8 +1,11 @@
-# Discord Bot Credentials
+# Discord Bot Credentials (copy to .dev.vars — never commit .dev.vars)
 DISCORD_TOKEN=your-bot-token-here
 DISCORD_PUBLIC_KEY=your-public-key-here
 DISCORD_APPLICATION_ID=your-application-id-here
 
-# Test Server Configuration
-DISCORD_TEST_GUILD_ID=your-test-guild-id-here
-DISCORD_TEST_CHANNEL_ID=your-test-channel-id-here
+# Together AI (get a free key at together.ai)
+TOGETHER_API_KEY=your-together-api-key-here
+
+# Target Server & Channel
+DISCORD_TEST_GUILD_ID=your-guild-id-here
+DISCORD_TEST_CHANNEL_ID=your-channel-id-here

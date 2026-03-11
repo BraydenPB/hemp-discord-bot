@@ -2,17 +2,18 @@ name = "hemp-discord-bot"
 main = "src/index.js"
 compatibility_date = "2026-03-10"
 compatibility_flags = ["nodejs_compat"]
+account_id = "75620f084ea25ade5ee57a71a830bba2"
 
-# Cron triggers for scheduled tasks (UTC time)
-# 6am CDT (Central Daylight) = 11:00 UTC
-# 8am CDT (Central Daylight) = 13:00 UTC
-[[triggers]]
-crons = ["0 11 * * *", "0 13 * * *"]
+# Cron triggers (UTC) — CDT = UTC-5
+# 6am CDT = 11:00 UTC | 8am CDT = 13:00 UTC
+# Note: shifts 1hr in winter (CST = UTC-6)
+[triggers]
+crons = ["0 11 * * *"]
 
 # KV namespace for storing research data
 [[kv_namespaces]]
 binding = "HEMP_KV"
-id = "your-kv-namespace-id"
+id = "67da35153de6428ab360bd415cc1e0c1"
 
 # Secrets (set via: wrangler secret put <NAME>)
 # - DISCORD_TOKEN
@@ -20,3 +21,4 @@ id = "your-kv-namespace-id"
 # - DISCORD_APPLICATION_ID
 # - DISCORD_TEST_CHANNEL_ID
 # - DISCORD_TEST_GUILD_ID
+# - TOGETHER_API_KEY
