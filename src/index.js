@@ -69,6 +69,30 @@ async function postDailyContent(env, dayOfWeek) {
   }
 }
 
+// Filters out previously posted items and shuffles the remainder
+async function getUnseenItems(env, category, items) {
+  const key = `seen_${category}`;
+  const raw = await env.HEMP_KV.get(key);
+  const seen = new Set(raw ? JSON.parse(raw) : []);
+
+  const unseen = items.filter(i => !seen.has(i.link));
+
+  // Shuffle so we don't always show the same "top N" on slow news days
+  const pool = unseen.length ? shuffle(unseen) : shuffle(items);
+  const chosen = pool.slice(0, 5);
+
+  const updatedSeen = [...seen, ...chosen.map(i => i.link)].slice(-200);
+  await env.HEMP_KV.put(key, JSON.stringify(updatedSeen));
+  return chosen;
+}
+
+function shuffle(arr) {
+  return arr
+    .map(v => ({ v, r: Math.random() }))
+    .sort((a, b) => a.r - b.r)
+    .map(x => x.v);
+}
+
 // Posts a single focused category embed with an AI intro
 async function postCategoryDigest(env, category, research) {
   const channelId = env.DISCORD_TEST_CHANNEL_ID;
@@ -79,16 +103,18 @@ async function postCategoryDigest(env, category, research) {
     return;
   }
 
+  const filtered = await getUnseenItems(env, category, items);
+
   let brief = null;
   if (env.TOGETHER_API_KEY) {
     try {
-      brief = await generateCategoryBrief(category, items, env.TOGETHER_API_KEY);
+      brief = await generateCategoryBrief(category, filtered, env.TOGETHER_API_KEY);
     } catch (err) {
       console.error('AI brief failed:', err.message);
     }
   }
 
-  const embed = buildCategoryEmbed(category, items, research.fetchedAt, brief);
+  const embed = buildCategoryEmbed(category, filtered, research.fetchedAt, brief);
   if (!embed) return;
 
   const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
@@ -201,7 +227,7 @@ async function followUp(interaction, env, data) {
 async function postDiscussion(env) {
   console.log('Posting weekly discussion...');
   const channelId = env.DISCORD_TEST_CHANNEL_ID;
-  const prompt = await generateDiscussionPrompt();
+  const prompt = await generateDiscussionPrompt(env);
 
   const msgRes = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
     method: 'POST',
