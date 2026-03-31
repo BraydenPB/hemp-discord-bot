@@ -57,9 +57,8 @@ async function run() {
     console.log('Generating discussion prompt...');
     const prompt = await generateDiscussionPrompt();
     console.log(`\nPrompt: ${prompt.question}\nThread: ${prompt.threadTitle}\n`);
-    await post({ content: prompt.question });
 
-    // Create thread on the posted message
+    // Post the message and create a thread on it
     const msgRes = await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages`, {
       method: 'POST',
       headers: { 'Authorization': `Bot ${TOKEN}`, 'Content-Type': 'application/json' },
@@ -72,6 +71,8 @@ async function run() {
         headers: { 'Authorization': `Bot ${TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: prompt.threadTitle, auto_archive_duration: 1440, type: 11 })
       });
+    } else {
+      console.error('❌ Discussion post failed:', await msgRes.text());
     }
     console.log('✅ Done!');
     return;

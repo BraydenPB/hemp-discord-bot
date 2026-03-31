@@ -92,30 +92,37 @@ export function buildCategoryEmbed(category, items, fetchedAt, brief) {
   return embed;
 }
 
+export function mdLink(title, url) {
+  if (!title || !url) return title || 'Untitled';
+  const safeTitle = title.replace(/[\[\]]/g, '\\$&');
+  const safeUrl = url.replace(/\)/g, '%29');
+  return `[${safeTitle}](${safeUrl})`;
+}
+
 function buildCategoryFields(category, items) {
   switch (category) {
     case 'news':
       return items.slice(0, 5).map(a => ({
         name: a.source ?? 'News',
-        value: `[${a.title}](${a.link})`,
+        value: mdLink(a.title, a.link),
         inline: false
       }));
     case 'legislation':
       return items.slice(0, 5).map(b => ({
         name: `${b.billId} — ${b.status}`,
-        value: `[${b.title}](${b.link})`,
+        value: mdLink(b.title, b.link),
         inline: false
       }));
     case 'studies':
       return items.slice(0, 4).map(s => ({
         name: s.journal ?? 'PubMed',
-        value: `[${s.title}](${s.link})${s.authors ? `\n*${s.authors}*` : ''}`,
+        value: `${mdLink(s.title, s.link)}${s.authors ? `\n*${s.authors}*` : ''}`,
         inline: false
       }));
     case 'trials':
       return items.slice(0, 4).map(t => ({
         name: t.org ?? 'Clinical Trial',
-        value: `[${t.title}](${t.link})\nStatus: ${t.status}`,
+        value: `${mdLink(t.title, t.link)}\nStatus: ${t.status}`,
         inline: false
       }));
     default:

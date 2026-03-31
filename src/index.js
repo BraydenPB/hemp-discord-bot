@@ -1,7 +1,7 @@
 import { verifyKey } from './verify.js';
 import { fetchHempResearch } from './research.js';
 import { generateDiscussionPrompt } from './discussion.js';
-import { generateCategoryBrief, buildCategoryEmbed, generateDailyBrief, buildBriefEmbed } from './summarize.js';
+import { generateCategoryBrief, buildCategoryEmbed, generateDailyBrief, buildBriefEmbed, mdLink } from './summarize.js';
 
 // Mon–Thu: one research category per day. Fri: community discussion. Sat/Sun: off.
 const DAILY_ROTATION = {
@@ -265,7 +265,7 @@ function buildResearchEmbeds(research) {
     embeds.push({
       title: '📰 Hemp News',
       color: 0x2a9d8f,
-      description: research.news.slice(0, 5).map(a => `• [${a.title}](${a.link}) — *${a.source}*`).join('\n'),
+      description: research.news.slice(0, 5).map(a => `• ${mdLink(a.title, a.link)} — *${a.source}*`).join('\n'),
       ...ts
     });
   }
@@ -276,7 +276,7 @@ function buildResearchEmbeds(research) {
       color: 0xe76f51,
       fields: research.legislation.slice(0, 5).map(b => ({
         name: `${b.billId} — ${b.status}`,
-        value: `[${b.title}](${b.link})`,
+        value: mdLink(b.title, b.link),
         inline: false
       })),
       ...ts
@@ -289,7 +289,7 @@ function buildResearchEmbeds(research) {
       color: 0x457b9d,
       fields: research.studies.slice(0, 4).map(s => ({
         name: s.journal || 'PubMed',
-        value: `[${s.title}](${s.link})${s.authors ? `\n*${s.authors}*` : ''}`,
+        value: `${mdLink(s.title, s.link)}${s.authors ? `\n*${s.authors}*` : ''}`,
         inline: false
       })),
       ...ts
@@ -302,7 +302,7 @@ function buildResearchEmbeds(research) {
       color: 0x9b72cf,
       fields: research.trials.slice(0, 4).map(t => ({
         name: t.org || 'Unknown Org',
-        value: `[${t.title}](${t.link})\nStatus: ${t.status}`,
+        value: `${mdLink(t.title, t.link)}\nStatus: ${t.status}`,
         inline: false
       })),
       ...ts

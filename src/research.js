@@ -58,12 +58,13 @@ export async function fetchLegislation() {
     const data = await res.json();
 
     for (const bill of (data.objects || [])) {
+      if (!bill.link) continue;
       bills.push({
         title: bill.title_without_number || bill.title,
         billId: `${bill.bill_type_label} ${bill.number}`,
         status: bill.current_status_description || bill.current_status,
         introduced: bill.introduced_date,
-        link: `https://www.govtrack.us${bill.link}`,
+        link: bill.link.startsWith('http') ? bill.link : `https://www.govtrack.us${bill.link}`,
         source: 'GovTrack (Federal)'
       });
     }
@@ -79,14 +80,17 @@ export async function fetchLegislation() {
     );
     if (res.ok) {
       const feed = parseRSS(await res.text());
-      feed.items.slice(0, 5).forEach(item => bills.push({
-        title: item.title,
-        billId: 'Federal Register',
-        status: 'Regulatory Filing',
-        introduced: item.pubDate,
-        link: item.link,
-        source: 'Federal Register'
-      }));
+      feed.items.slice(0, 5).forEach(item => {
+        if (!item.link || !isValidUrl(item.link)) return;
+        bills.push({
+          title: item.title,
+          billId: 'Federal Register',
+          status: 'Regulatory Filing',
+          introduced: item.pubDate,
+          link: item.link,
+          source: 'Federal Register'
+        });
+      });
     }
   } catch (e) {
     console.error('Federal Register fetch failed:', e.message);
@@ -152,8 +156,10 @@ export async function fetchTrials() {
     for (const study of (data.studies || [])) {
       const p = study.protocolSection;
       const id = p.identificationModule?.nctId;
+      const title = p.identificationModule?.briefTitle;
+      if (!id || !title) continue;
       trials.push({
-        title: p.identificationModule?.briefTitle,
+        title,
         status: p.statusModule?.overallStatus,
         org: p.identificationModule?.organization?.fullName,
         startDate: p.statusModule?.startDateStruct?.date,
@@ -197,7 +203,7 @@ function parseRSS(xml) {
     const link  = extractTag(x, 'link') || extractAtomLink(x);
     const pubDate = extractTag(x, 'pubDate') || extractTag(x, 'dc:date');
     const description = extractTag(x, 'description');
-    if (title && link) items.push({ title, link, pubDate, description });
+    if (title && link && isValidUrl(link)) items.push({ title, link: link.trim(), pubDate, description });
   }
   return { items };
 }
@@ -230,6 +236,10 @@ function dedupe(articles) {
 
 function byDate(a, b) {
   return new Date(b.pubDate || 0) - new Date(a.pubDate || 0);
+}
+
+function isValidUrl(str) {
+  return typeof str === 'string' && /^https?:\/\/.+/.test(str.trim());
 }
 
 export { NEWS_SOURCES, HEMP_KEYWORDS };
