@@ -6,16 +6,21 @@
 // --- News Sources (RSS) ---
 
 const NEWS_SOURCES = [
-  { name: 'Cannabis Industry Journal', url: 'https://cannabisindustryjournal.com/feed/' },
-  { name: 'HempToday',                 url: 'https://hemptoday.net/feed' },
-  { name: 'Ganjapreneur Hemp',         url: 'https://ganjapreneur.com/news/industry/hemp/feed/' },
-  { name: 'GoGreen Hemp',              url: 'https://gogreenhemp.com/blog-feed.xml' }
+  { name: 'r/hempflowers',   url: 'https://www.reddit.com/r/hempflowers.rss?limit=15' },
+  { name: 'CBD Oracle',      url: 'https://cbdoracle.com/feed/' },
+  { name: 'Ministry of Hemp', url: 'https://ministryofhemp.com/feed/' },
+  { name: 'Leafly',          url: 'https://www.leafly.com/news/strains-products/feed/' },
 ];
 
 const HEMP_KEYWORDS = [
-  'hemp', 'cannabis', 'cbd', 'cbg', 'cbn', 'thc', 'cannabinoid',
-  'farm bill', 'delta-8', 'delta-9', 'endocannabinoid', 'terpene',
-  'industrial hemp', 'usda', 'dea', 'fda', 'regulation', 'legalization'
+  'hemp flower', 'smokable hemp', 'cbd flower', 'cbg flower', 'cbn flower',
+  'indoor hemp', 'greenhouse hemp', 'small batch', 'craft hemp', 'artisan',
+  'terpene', 'myrcene', 'limonene', 'caryophyllene', 'linalool', 'pinene',
+  'cultivar', 'strain', 'phenotype', 'genetics', 'seed to sale',
+  'coa', 'certificate of analysis', 'third party test', 'lab result',
+  'slow burn', 'smooth smoke', 'nose', 'cure', 'trim', 'bud',
+  'delta-8', 'delta-9', 'thca', 'cbda', 'full spectrum', 'entourage',
+  'pre-roll', 'flower review', 'vendor', 'batch',
 ];
 
 // --- 1. News ---
@@ -224,10 +229,16 @@ function isRelevant(item) {
   return HEMP_KEYWORDS.some(k => text.includes(k));
 }
 
+function normalizeTitle(title) {
+  return title.toLowerCase()
+    .replace(/^(new|study|report|breaking|update|exclusive)[:\s]+/i, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
 function dedupe(articles) {
   const seen = new Set();
   return articles.filter(a => {
-    const key = a.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const key = normalizeTitle(a.title);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
