@@ -92,7 +92,7 @@ export function buildCategoryEmbed(category, items, fetchedAt, brief) {
   return embed;
 }
 
-function mdLink(title, url) {
+export function mdLink(title, url) {
   if (!title || !url) return title || 'Untitled';
   const safeTitle = title.replace(/[\[\]]/g, '\\$&');
   const safeUrl = url.replace(/\)/g, '%29');

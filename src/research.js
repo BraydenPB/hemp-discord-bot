@@ -152,8 +152,10 @@ export async function fetchTrials() {
     for (const study of (data.studies || [])) {
       const p = study.protocolSection;
       const id = p.identificationModule?.nctId;
+      const title = p.identificationModule?.briefTitle;
+      if (!id || !title) continue;
       trials.push({
-        title: p.identificationModule?.briefTitle,
+        title,
         status: p.statusModule?.overallStatus,
         org: p.identificationModule?.organization?.fullName,
         startDate: p.statusModule?.startDateStruct?.date,
