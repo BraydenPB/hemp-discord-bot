@@ -58,12 +58,13 @@ export async function fetchLegislation() {
     const data = await res.json();
 
     for (const bill of (data.objects || [])) {
+      if (!bill.link) continue;
       bills.push({
         title: bill.title_without_number || bill.title,
         billId: `${bill.bill_type_label} ${bill.number}`,
         status: bill.current_status_description || bill.current_status,
         introduced: bill.introduced_date,
-        link: bill.link?.startsWith('http') ? bill.link : `https://www.govtrack.us${bill.link}`,
+        link: bill.link.startsWith('http') ? bill.link : `https://www.govtrack.us${bill.link}`,
         source: 'GovTrack (Federal)'
       });
     }
@@ -79,14 +80,17 @@ export async function fetchLegislation() {
     );
     if (res.ok) {
       const feed = parseRSS(await res.text());
-      feed.items.slice(0, 5).forEach(item => bills.push({
-        title: item.title,
-        billId: 'Federal Register',
-        status: 'Regulatory Filing',
-        introduced: item.pubDate,
-        link: item.link,
-        source: 'Federal Register'
-      }));
+      feed.items.slice(0, 5).forEach(item => {
+        if (!item.link || !isValidUrl(item.link)) return;
+        bills.push({
+          title: item.title,
+          billId: 'Federal Register',
+          status: 'Regulatory Filing',
+          introduced: item.pubDate,
+          link: item.link,
+          source: 'Federal Register'
+        });
+      });
     }
   } catch (e) {
     console.error('Federal Register fetch failed:', e.message);

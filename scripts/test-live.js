@@ -17,13 +17,12 @@ async function run() {
   const health = await fetch(WORKER_URL);
   console.log(`   Status: ${health.status} — ${await health.text()}\n`);
 
-  // 2. Test RSS feeds directly
-  console.log('2. Testing RSS feeds...');
+  // 2. Test research fetchers directly
+  console.log('2. Testing research fetchers...');
   const { fetchHempResearch } = await import('../src/research.js');
   const research = await fetchHempResearch();
-  console.log(`   Articles found: ${research.articles.length}`);
-  if (research.errors) console.warn('   Feed errors:', research.errors);
-  research.articles.slice(0, 3).forEach(a => console.log(`   - [${a.source}] ${a.title}`));
+  console.log(`   News: ${research.news.length}, Legislation: ${research.legislation.length}, Studies: ${research.studies.length}, Trials: ${research.trials.length}`);
+  research.news.slice(0, 3).forEach(a => console.log(`   - [${a.source}] ${a.title}`));
   console.log();
 
   // 3. Post a test message via bot token (Discord REST)
