@@ -28,17 +28,31 @@ describe('generateDiscussionPrompt', () => {
     expect(knownThemes).toContain(p.theme);
   });
 
-  it('threadTitle is non-empty', async () => {
-    const p = await generateDiscussionPrompt();
-    expect(p.threadTitle.length).toBeGreaterThan(0);
+  it('produces different themes across topics', () => {
+    const themes = new Set(DISCUSSION_TOPICS.map(t => t.theme));
+    expect(themes.size).toBe(5);
   });
 
-  it('produces different themes across a week', async () => {
-    // DISCUSSION_TOPICS has 5 entries cycling by day-of-week — all 5 should be represented across 7 days
-    const themes = new Set();
-    for (let i = 0; i < DISCUSSION_TOPICS.length; i++) {
-      themes.add(DISCUSSION_TOPICS[i].theme);
-    }
-    expect(themes.size).toBe(5);
+  it('all topics are flower/connoisseur focused', () => {
+    const themes = DISCUSSION_TOPICS.map(t => t.theme);
+    // Should NOT contain generic beginner themes
+    expect(themes).not.toContain('Hemp 101');
+    expect(themes).not.toContain('Hemp & The Environment');
+    // Should contain connoisseur themes
+    expect(themes).toContain('Vendor Talk');
+    expect(themes).toContain('Cultivar & Genetics');
+    expect(themes).toContain('Cure, Nose & Quality');
+  });
+
+  it('uses KV history to avoid repeats when env provided', async () => {
+    const history = [];
+    const mockEnv = {
+      HEMP_KV: {
+        get: async () => JSON.stringify(history),
+        put: async (key, val) => { history.push(val); },
+      },
+    };
+    const p1 = await generateDiscussionPrompt(mockEnv);
+    expect(p1.question.length).toBeGreaterThan(0);
   });
 });

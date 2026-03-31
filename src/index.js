@@ -2,15 +2,10 @@ import { verifyKey } from './verify.js';
 import { fetchHempResearch } from './research.js';
 import { generateDiscussionPrompt } from './discussion.js';
 import { generateCategoryBrief, buildCategoryEmbed, generateDailyBrief, buildBriefEmbed } from './summarize.js';
+import { runCommunityPulse } from './pulse.js';
+import { DAILY_ROTATION, SCHEDULE, COLORS } from './config.js';
 
-// Mon–Thu: one research category per day. Fri: community discussion. Sat/Sun: off.
-const DAILY_ROTATION = {
-  1: 'news',        // Monday
-  2: 'legislation', // Tuesday
-  3: 'studies',     // Wednesday
-  4: 'trials',      // Thursday
-  5: 'discussion',  // Friday
-};
+const DISCORD_API = 'https://discord.com/api/v10';
 
 export default {
   async fetch(request, env, ctx) {
@@ -29,27 +24,33 @@ export default {
       if (message.type === 2) return handleCommand(message, env, ctx);
     }
 
-    return new Response('Hemp Discord Bot is running', { status: 200 });
+    return new Response('Hemp Flower Bot is running', { status: 200 });
   },
 
   async scheduled(event, env, ctx) {
     const now = new Date();
     const hourUTC = now.getUTCHours();
-    const dayUTC  = now.getUTCDay(); // 0=Sun … 6=Sat
+    const dayUTC  = now.getUTCDay();
     console.log(`Cron fired — UTC hour ${hourUTC}, day ${dayUTC}`);
 
-    // 11:00 UTC = 6am CDT — daily content post
-    if (hourUTC === 11) {
+    // Daily research/discussion post at configured hour
+    if (hourUTC === SCHEDULE.RESEARCH_HOUR_UTC) {
       ctx.waitUntil(postDailyContent(env, dayUTC));
     }
-  }
+
+    // Community Pulse at configured hours
+    if (SCHEDULE.PULSE_HOURS_UTC.includes(hourUTC)) {
+      ctx.waitUntil(runPulse(env));
+    }
+  },
 };
 
-// Routes each weekday to the right post type
+// ─── Scheduled content ──────────────────────────────────────────────
+
 async function postDailyContent(env, dayOfWeek) {
   const category = DAILY_ROTATION[dayOfWeek];
   if (!category) {
-    console.log('Weekend — no post scheduled');
+    console.log('No post scheduled for this day');
     return;
   }
 
@@ -69,9 +70,8 @@ async function postDailyContent(env, dayOfWeek) {
   }
 }
 
-// Posts a single focused category embed with an AI intro
 async function postCategoryDigest(env, category, research) {
-  const channelId = env.DISCORD_TEST_CHANNEL_ID;
+  const channelId = env.RESEARCH_CHANNEL_ID || env.DISCORD_TEST_CHANNEL_ID;
   const items = research[category] ?? [];
 
   if (!items.length) {
@@ -91,17 +91,44 @@ async function postCategoryDigest(env, category, research) {
   const embed = buildCategoryEmbed(category, items, research.fetchedAt, brief);
   if (!embed) return;
 
-  const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bot ${env.DISCORD_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ embeds: [embed] })
-  });
-
-  if (!res.ok) console.error('Failed to post category digest:', await res.text());
-  else console.log(`✅ ${category} posted`);
+  await postToChannel(channelId, { embeds: [embed] }, env.DISCORD_TOKEN);
+  console.log(`${category} posted`);
 }
 
-// --- Slash commands ---
+async function runPulse(env) {
+  try {
+    await runCommunityPulse(env);
+  } catch (err) {
+    console.error('Community Pulse failed:', err);
+  }
+}
+
+async function postDiscussion(env) {
+  console.log('Posting weekly discussion...');
+  const channelId = env.DISCUSSION_CHANNEL_ID || env.DISCORD_TEST_CHANNEL_ID;
+  const prompt = await generateDiscussionPrompt(env);
+
+  const msgRes = await postToChannel(channelId, { content: prompt.question }, env.DISCORD_TOKEN);
+  if (!msgRes.ok) throw new Error(`Failed to post message: ${await msgRes.text()}`);
+
+  const msg = await msgRes.json();
+
+  const threadRes = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${msg.id}/threads`, {
+    method: 'POST',
+    headers: { Authorization: `Bot ${env.DISCORD_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: prompt.threadTitle, auto_archive_duration: 1440, type: 11 }),
+  });
+
+  if (!threadRes.ok) {
+    console.warn('Thread creation failed:', await threadRes.text());
+    return;
+  }
+
+  await env.HEMP_KV.put('last_discussion', new Date().toISOString());
+  console.log('Discussion posted');
+}
+
+// ─── Slash commands ─────────────────────────────────────────────────
 
 async function handleCommand(interaction, env, ctx) {
   const command = interaction.data.name;
@@ -111,56 +138,63 @@ async function handleCommand(interaction, env, ctx) {
       case 'ping':
         return Response.json({
           type: 4,
-          data: { content: '🌿 Pong! Hemp bot is operational.' }
+          data: { content: 'Pong. Bot is operational.' },
         });
 
       case 'research':
         ctx.waitUntil(deferredResearch(interaction, env));
         return Response.json({ type: 5 });
 
+      case 'pulse':
+        ctx.waitUntil(deferredPulse(interaction, env));
+        return Response.json({ type: 5, data: { flags: 64 } });
+
       case 'test-discussion':
         ctx.waitUntil(deferredTestDiscussion(interaction, env));
         return Response.json({ type: 5, data: { flags: 64 } });
 
       case 'status': {
-        const lastResearch   = await env.HEMP_KV.get('last_research');
-        const lastDiscussion = await env.HEMP_KV.get('last_discussion');
+        const [lastResearch, lastDiscussion, lastPulse] = await Promise.all([
+          env.HEMP_KV.get('last_research'),
+          env.HEMP_KV.get('last_discussion'),
+          env.HEMP_KV.get('last_pulse'),
+        ]);
         const today = new Date().getUTCDay();
         const todayLabel = DAILY_ROTATION[today] ?? 'off';
         return Response.json({
           type: 4,
           data: {
             embeds: [{
-              title: '🌿 Hemp Bot Status',
-              color: 0x2d6a4f,
+              title: 'Bot Status',
+              color: COLORS.discussion,
               fields: [
-                { name: '📰 Last Research', value: lastResearch   ? formatTimestamp(lastResearch)   : 'Never', inline: true },
-                { name: '💬 Last Discussion', value: lastDiscussion ? formatTimestamp(lastDiscussion) : 'Never', inline: true },
-                { name: '📅 Today\'s Post', value: todayLabel, inline: true }
+                { name: 'Last Research', value: lastResearch ? fmtTs(lastResearch) : 'Never', inline: true },
+                { name: 'Last Discussion', value: lastDiscussion ? fmtTs(lastDiscussion) : 'Never', inline: true },
+                { name: 'Last Pulse', value: lastPulse ? fmtTs(lastPulse) : 'Never', inline: true },
+                { name: 'Today\'s Post', value: todayLabel, inline: true },
               ],
-              footer: { text: 'Mon: News · Tue: Legislation · Wed: Studies · Thu: Trials · Fri: Discussion' }
+              footer: { text: 'Mon: News · Tue: Regulation · Wed: Studies · Thu: Trials · Fri: Discussion · Pulse: 2x daily' },
             }],
-            flags: 64
-          }
+            flags: 64,
+          },
         });
       }
 
       default:
         return Response.json({
           type: 4,
-          data: { content: 'Unknown command.', flags: 64 }
+          data: { content: 'Unknown command.', flags: 64 },
         });
     }
   } catch (error) {
     console.error(`Command /${command} failed:`, error);
     return Response.json({
       type: 4,
-      data: { content: `❌ Something went wrong. Please try again.`, flags: 64 }
+      data: { content: 'Something went wrong. Try again.', flags: 64 },
     });
   }
 }
 
-// /research — shows all 4 categories in one on-demand view
 async function deferredResearch(interaction, env) {
   try {
     const cached = await env.HEMP_KV.get('latest_research');
@@ -174,119 +208,110 @@ async function deferredResearch(interaction, env) {
     await followUp(interaction, env, { embeds, flags: 64 });
   } catch (error) {
     console.error('Deferred /research failed:', error);
-    await followUp(interaction, env, { content: '❌ Failed to fetch hemp research. Try again later.', flags: 64 });
+    await followUp(interaction, env, { content: 'Failed to fetch research. Try again later.', flags: 64 });
+  }
+}
+
+async function deferredPulse(interaction, env) {
+  try {
+    const embed = await runCommunityPulse(env);
+    if (embed) {
+      await followUp(interaction, env, { content: 'Pulse posted to channel.', flags: 64 });
+    } else {
+      await followUp(interaction, env, { content: 'Pulse skipped — not enough activity or no channels configured.', flags: 64 });
+    }
+  } catch (error) {
+    console.error('Deferred /pulse failed:', error);
+    await followUp(interaction, env, { content: 'Pulse failed. Check logs.', flags: 64 });
   }
 }
 
 async function deferredTestDiscussion(interaction, env) {
   try {
     await postDiscussion(env);
-    await followUp(interaction, env, { content: '✅ Discussion posted!', flags: 64 });
+    await followUp(interaction, env, { content: 'Discussion posted.', flags: 64 });
   } catch (error) {
     console.error('Deferred /test-discussion failed:', error);
-    await followUp(interaction, env, { content: `❌ Failed to post discussion: ${error.message}`, flags: 64 });
+    await followUp(interaction, env, { content: `Failed: ${error.message}`, flags: 64 });
   }
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────
+
 async function followUp(interaction, env, data) {
-  const url = `https://discord.com/api/v10/webhooks/${env.DISCORD_APPLICATION_ID}/${interaction.token}/messages/@original`;
+  const url = `${DISCORD_API}/webhooks/${env.DISCORD_APPLICATION_ID}/${interaction.token}/messages/@original`;
   const res = await fetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   });
   if (!res.ok) console.error('Follow-up patch failed:', await res.text());
 }
 
-async function postDiscussion(env) {
-  console.log('Posting weekly discussion...');
-  const channelId = env.DISCORD_TEST_CHANNEL_ID;
-  const prompt = await generateDiscussionPrompt();
-
-  const msgRes = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+async function postToChannel(channelId, payload, token) {
+  return fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
     method: 'POST',
-    headers: { 'Authorization': `Bot ${env.DISCORD_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content: prompt.question })
+    headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
-
-  if (!msgRes.ok) throw new Error(`Failed to post message: ${await msgRes.text()}`);
-
-  const msg = await msgRes.json();
-
-  const threadRes = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${msg.id}/threads`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bot ${env.DISCORD_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: prompt.threadTitle, auto_archive_duration: 1440, type: 11 })
-  });
-
-  if (!threadRes.ok) {
-    console.warn('Thread creation failed:', await threadRes.text());
-    return;
-  }
-
-  await env.HEMP_KV.put('last_discussion', new Date().toISOString());
-  console.log('Discussion posted successfully');
 }
 
-// --- Embed builders ---
-
-// Full 4-category view for /research slash command
 function buildResearchEmbeds(research) {
   const embeds = [];
-  const ts = { footer: { text: `Updated ${new Date(research.fetchedAt).toUTCString()}` } };
+  const ts = { footer: { text: `${new Date(research.fetchedAt).toUTCString()}` } };
 
   if (research.news?.length) {
     embeds.push({
-      title: '📰 Hemp News',
-      color: 0x2a9d8f,
-      description: research.news.slice(0, 5).map(a => `• [${a.title}](${a.link}) — *${a.source}*`).join('\n'),
-      ...ts
+      title: 'Flower Feed',
+      color: COLORS.news,
+      description: research.news.slice(0, 5).map(a => `[${a.title}](${a.link}) — *${a.source}*`).join('\n'),
+      ...ts,
     });
   }
 
   if (research.legislation?.length) {
     embeds.push({
-      title: '⚖️ Legislation & Regulatory',
-      color: 0xe76f51,
+      title: 'Regulation Watch',
+      color: COLORS.legislation,
       fields: research.legislation.slice(0, 5).map(b => ({
         name: `${b.billId} — ${b.status}`,
-        value: `[${b.title}](${b.link})`,
-        inline: false
+        value: `[${b.title}](${b.link})${b.flowerRelevant ? ' 🌿' : ''}`,
+        inline: false,
       })),
-      ...ts
+      ...ts,
     });
   }
 
   if (research.studies?.length) {
     embeds.push({
-      title: '🔬 Recent Studies',
-      color: 0x457b9d,
+      title: 'Research Drop',
+      color: COLORS.studies,
       fields: research.studies.slice(0, 4).map(s => ({
         name: s.journal || 'PubMed',
         value: `[${s.title}](${s.link})${s.authors ? `\n*${s.authors}*` : ''}`,
-        inline: false
+        inline: false,
       })),
-      ...ts
+      ...ts,
     });
   }
 
   if (research.trials?.length) {
     embeds.push({
-      title: '🧪 Active Clinical Trials',
-      color: 0x9b72cf,
+      title: 'Trial Tracker',
+      color: COLORS.trials,
       fields: research.trials.slice(0, 4).map(t => ({
         name: t.org || 'Unknown Org',
         value: `[${t.title}](${t.link})\nStatus: ${t.status}`,
-        inline: false
+        inline: false,
       })),
-      ...ts
+      ...ts,
     });
   }
 
   return embeds;
 }
 
-function formatTimestamp(iso) {
+function fmtTs(iso) {
   const d = new Date(iso);
   return `<t:${Math.floor(d.getTime() / 1000)}:R>`;
 }

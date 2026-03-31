@@ -1,45 +1,58 @@
 /**
- * AI-powered research summarizer using Together AI
- * Model: meta-llama/Llama-3.3-70B-Instruct-Turbo (~$0.40/year for daily use)
+ * AI-powered research summarizer using Together AI.
+ * Model: meta-llama/Llama-3.3-70B-Instruct-Turbo
+ *
+ * All prompts are tuned for a connoisseur smokable hemp flower audience —
+ * experienced enthusiasts who care about cultivars, cure quality, vendor
+ * reputation, COAs, terpene profiles, and legislation that impacts flower
+ * availability.
  */
 
-const TOGETHER_API_URL = 'https://api.together.xyz/v1/chat/completions';
-const MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
+import { AI_API_URL, AI_MODEL, COLORS } from './config.js';
 
-// Per-category metadata for daily posts
+// ─── Per-category metadata ──────────────────────────────────────────
+
 export const CATEGORY_META = {
   news: {
-    title: '📰 Hemp Headlines',
-    color: 0x2a9d8f,
-    cta: '💬 Which story catches your eye? Share your thoughts below.',
+    title: 'Flower Feed',
+    color: COLORS.news,
+    cta: 'Anything here catch your eye? Drop your take below.',
   },
   legislation: {
-    title: '⚖️ Legislative Update',
-    color: 0xe76f51,
-    cta: '💬 How do you think these changes could affect hemp farmers or consumers?',
+    title: 'Regulation Watch',
+    color: COLORS.legislation,
+    cta: 'How does this affect flower availability where you are?',
   },
   studies: {
-    title: '🔬 Science Spotlight',
-    color: 0x457b9d,
-    cta: '💬 Does this research change how you think about hemp?',
+    title: 'Research Drop',
+    color: COLORS.studies,
+    cta: 'Relevant to how you use flower? Share your thoughts.',
   },
   trials: {
-    title: '🧪 Trials Watch',
-    color: 0x9b72cf,
-    cta: '💬 Which of these trials are you most hopeful about?',
+    title: 'Trial Tracker',
+    color: COLORS.trials,
+    cta: 'Any of these feel relevant to the flower community?',
   },
 };
 
+// ─── System prompts (connoisseur voice) ─────────────────────────────
+
+const INTRO_VARIETY_INSTRUCTION = `CRITICAL: Do NOT start with "The", "A", "An", "In", "With", "From", "New", or "Recent". Do NOT start with any time-of-day reference ("Today", "This week", "Good morning"). Vary your opening — try leading with a specific vendor, cultivar, finding, or provocative observation. Write like you're dropping a hot take in a good hemp flower channel, not writing a newsletter intro.`;
+
 const CATEGORY_SYSTEM_PROMPTS = {
-  news: `You write brief, engaging introductions to hemp news for a community of curious beginners on Discord. Pick the most interesting or surprising story and explain why it matters in plain, accessible language. No bullet points, no markdown formatting, no product promotion. Two natural sentences that make someone want to read more.`,
-  legislation: `You write brief, engaging introductions to hemp legislation updates for a community of curious beginners on Discord. Explain what the most significant bill or regulatory change could mean for real people — farmers, consumers, or patients. Plain language, no legal jargon, no bullet points, no markdown. Two sentences.`,
-  studies: `You write brief, engaging introductions to hemp research studies for a community of curious beginners on Discord. Take the most interesting scientific finding and explain it like you're telling a friend something fascinating you just read. No technical jargon, no bullet points, no markdown. Two natural sentences.`,
-  trials: `You write brief, engaging introductions to hemp clinical trials for a community of curious beginners on Discord. Explain what the most interesting trial is testing and what it could mean for people if it succeeds — in warm, accessible language. No medical jargon, no bullet points, no markdown. Two sentences.`,
+  news: `You write 2-sentence intros to hemp flower news for a private Discord of experienced flower enthusiasts — people who know vendors by name, care about cure and terps, and follow drops closely. Pick the most interesting story and frame it through a flower buyer's lens. Skip generic CBD industry hype. Be specific and opinionated but not clickbaity. No bullets, no markdown formatting. ${INTRO_VARIETY_INSTRUCTION}`,
+
+  legislation: `You write 2-sentence intros to hemp legislation updates for a private Discord of experienced flower enthusiasts who care about whether they can keep buying and smoking quality hemp flower. Focus on what actually threatens or protects flower access — total THC caps, smokable bans, THCA enforcement, state-level restrictions. Skip stuff that only matters to industrial processors or investors. Plain language, direct. No bullets, no markdown. ${INTRO_VARIETY_INSTRUCTION}`,
+
+  studies: `You write 2-sentence intros to cannabinoid research for a private Discord of people who actually smoke hemp flower for relaxation, sleep, anxiety, or pain. Take the most interesting finding and explain what it means for someone choosing between cultivars or cannabinoid profiles. Frame it through consumer experience, not broad pharma potential. No jargon, no bullets, no markdown. ${INTRO_VARIETY_INSTRUCTION}`,
+
+  trials: `You write 2-sentence intros to clinical trials for a private Discord of hemp flower enthusiasts. Focus on trials testing cannabinoids people actually care about (CBD, CBG, THCA, minor cannabinoids) for conditions relevant to flower consumers — anxiety, sleep, inflammation, pain. If a trial is only relevant to pharma investors, skip it and pick something better. No jargon, no bullets, no markdown. ${INTRO_VARIETY_INSTRUCTION}`,
 };
+
+// ─── Category brief generation ──────────────────────────────────────
 
 /**
  * Generate a focused 2-sentence AI brief for a single research category.
- * Used by scheduled daily posts (Mon–Thu).
  */
 export async function generateCategoryBrief(category, items, apiKey) {
   const systemPrompt = CATEGORY_SYSTEM_PROMPTS[category];
@@ -47,29 +60,31 @@ export async function generateCategoryBrief(category, items, apiKey) {
 
   const digest = items.slice(0, 5).map((item, i) => {
     if (category === 'legislation') return `${i + 1}. ${item.billId}: ${item.title} [${item.status}]`;
-    if (category === 'trials')      return `${i + 1}. ${item.title} [${item.status}]`;
+    if (category === 'trials')      return `${i + 1}. ${item.title} [${item.status}] — ${item.org || 'Unknown'}`;
     if (category === 'studies')     return `${i + 1}. ${item.title}${item.journal ? ` (${item.journal})` : ''}`;
     return `${i + 1}. ${item.title} — ${item.source}`;
   }).join('\n');
 
-  const res = await fetch(TOGETHER_API_URL, {
+  const res = await fetch(AI_API_URL, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: MODEL,
+      model: AI_MODEL,
       max_tokens: 150,
-      temperature: 0.72,
+      temperature: 0.78,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Here are today's items:\n\n${digest}\n\nWrite your 2-sentence intro. Do not start with "Today", "Good", or any time-of-day reference.` }
-      ]
-    })
+        { role: 'user', content: `Here are today's items:\n\n${digest}\n\nWrite your 2-sentence intro.` },
+      ],
+    }),
   });
 
   if (!res.ok) throw new Error(`Together AI error: ${res.status} ${await res.text()}`);
   const data = await res.json();
   return data.choices?.[0]?.message?.content?.trim() ?? null;
 }
+
+// ─── Embed builders ─────────────────────────────────────────────────
 
 /**
  * Build a focused embed for one category's daily post.
@@ -83,9 +98,9 @@ export function buildCategoryEmbed(category, items, fetchedAt, brief) {
     color: meta.color,
     fields: [
       ...buildCategoryFields(category, items),
-      { name: '\u200b', value: meta.cta, inline: false }
+      { name: '\u200b', value: meta.cta, inline: false },
     ],
-    footer: { text: `Updated ${new Date(fetchedAt).toUTCString()}` }
+    footer: { text: `${new Date(fetchedAt).toUTCString()}` },
   };
 
   if (brief) embed.description = brief;
@@ -98,32 +113,32 @@ function buildCategoryFields(category, items) {
       return items.slice(0, 5).map(a => ({
         name: a.source ?? 'News',
         value: `[${a.title}](${a.link})`,
-        inline: false
+        inline: false,
       }));
     case 'legislation':
       return items.slice(0, 5).map(b => ({
         name: `${b.billId} — ${b.status}`,
-        value: `[${b.title}](${b.link})`,
-        inline: false
+        value: `[${b.title}](${b.link})${b.flowerRelevant ? ' 🌿' : ''}`,
+        inline: false,
       }));
     case 'studies':
       return items.slice(0, 4).map(s => ({
         name: s.journal ?? 'PubMed',
         value: `[${s.title}](${s.link})${s.authors ? `\n*${s.authors}*` : ''}`,
-        inline: false
+        inline: false,
       }));
     case 'trials':
       return items.slice(0, 4).map(t => ({
         name: t.org ?? 'Clinical Trial',
         value: `[${t.title}](${t.link})\nStatus: ${t.status}`,
-        inline: false
+        inline: false,
       }));
     default:
       return [];
   }
 }
 
-// --- Legacy: used by /research slash command and trigger-research.js ---
+// ─── Legacy: all-in-one brief for /research command ─────────────────
 
 /**
  * Generate a brief summarizing all research categories at once.
@@ -131,24 +146,24 @@ function buildCategoryFields(category, items) {
 export async function generateDailyBrief(research, apiKey) {
   const digest = buildAllDigest(research);
 
-  const res = await fetch(TOGETHER_API_URL, {
+  const res = await fetch(AI_API_URL, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: MODEL,
+      model: AI_MODEL,
       max_tokens: 220,
-      temperature: 0.72,
+      temperature: 0.78,
       messages: [
         {
           role: 'system',
-          content: `You write sharp, thoughtful briefings for a hemp education community on Discord. Members are curious newcomers exploring hemp's science, law, and culture. Write like a knowledgeable friend who found something genuinely interesting. No bullet points, no markdown, no product mentions. 2-3 natural sentences.`
+          content: `You write sharp, opinionated briefings for a private Discord of experienced hemp flower enthusiasts. These people know their vendors, care about cure and terpene profiles, and want to know what matters for flower buyers — not generic CBD industry cheerleading. Pick the single most interesting or consequential item and make it compelling. 2-3 natural sentences. No bullets, no markdown. ${INTRO_VARIETY_INSTRUCTION}`,
         },
         {
           role: 'user',
-          content: `Today's hemp research data:\n\n${digest}\n\nPick the single most interesting or surprising finding and make it feel worth reading. Do NOT start with "Today", "Good", or any time reference.`
-        }
-      ]
-    })
+          content: `Here's today's hemp research:\n\n${digest}\n\nPick the most interesting finding and write your brief.`,
+        },
+      ],
+    }),
   });
 
   if (!res.ok) throw new Error(`Together AI error: ${res.status} ${await res.text()}`);
@@ -164,31 +179,31 @@ export function buildBriefEmbed(brief, research) {
     news:        research.news?.length ?? 0,
   };
   const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'news';
-  const color = CATEGORY_META[dominant]?.color ?? 0x2d6a4f;
+  const color = CATEGORY_META[dominant]?.color ?? COLORS.news;
 
   const parts = [];
-  if (research.news?.length)        parts.push(`**${research.news.length}** news articles`);
-  if (research.legislation?.length) parts.push(`**${research.legislation.length}** legislative updates`);
-  if (research.studies?.length)     parts.push(`**${research.studies.length}** recent studies`);
-  if (research.trials?.length)      parts.push(`**${research.trials.length}** active clinical trials`);
+  if (research.news?.length)        parts.push(`**${research.news.length}** flower news`);
+  if (research.legislation?.length) parts.push(`**${research.legislation.length}** regulatory updates`);
+  if (research.studies?.length)     parts.push(`**${research.studies.length}** studies`);
+  if (research.trials?.length)      parts.push(`**${research.trials.length}** active trials`);
 
   return {
-    title: '📡 Hemp Radar',
+    title: 'Hemp Flower Radar',
     description: brief,
     color,
-    fields: [{ name: '📊 Snapshot', value: parts.join(' · ') || 'No data', inline: false }],
-    footer: { text: `${new Date(research.fetchedAt).toUTCString()} · News · Legislation · PubMed · ClinicalTrials.gov` }
+    fields: [{ name: 'Snapshot', value: parts.join(' · ') || 'No data', inline: false }],
+    footer: { text: `${new Date(research.fetchedAt).toUTCString()} · Flower News · Regulation · PubMed · ClinicalTrials.gov` },
   };
 }
 
 function buildAllDigest(research) {
   const lines = [];
   if (research.news?.length) {
-    lines.push('NEWS:');
+    lines.push('FLOWER NEWS:');
     research.news.slice(0, 4).forEach(a => lines.push(`- ${a.title} (${a.source})`));
   }
   if (research.legislation?.length) {
-    lines.push('\nLEGISLATION:');
+    lines.push('\nREGULATION:');
     research.legislation.slice(0, 4).forEach(b => lines.push(`- ${b.billId}: ${b.title} [${b.status}]`));
   }
   if (research.studies?.length) {
@@ -196,7 +211,7 @@ function buildAllDigest(research) {
     research.studies.slice(0, 3).forEach(s => lines.push(`- ${s.title}${s.journal ? ` (${s.journal})` : ''}`));
   }
   if (research.trials?.length) {
-    lines.push('\nCLINICAL TRIALS:');
+    lines.push('\nTRIALS:');
     research.trials.slice(0, 3).forEach(t => lines.push(`- ${t.title} [${t.status}]`));
   }
   return lines.join('\n');

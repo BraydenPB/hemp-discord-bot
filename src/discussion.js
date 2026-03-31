@@ -1,62 +1,59 @@
 /**
- * Discussion Prompt Generator
+ * Discussion Prompt Generator — tuned for connoisseur hemp flower community.
+ *
+ * Topics focus on: cultivars, cure, vendor experiences, terpene profiles,
+ * effects, COAs, consumption methods, and the culture of smokable hemp.
  */
+
+import { COLORS } from './config.js';
 
 const DISCUSSION_TOPICS = [
   {
-    theme: 'Wellness & Medicinal Uses',
+    theme: 'Vendor Talk',
     prompts: [
-      'Have you ever tried hemp or CBD for something like sleep, anxiety, or pain? What was your experience — did it help, and how long did it take to notice anything?',
-      'The endocannabinoid system is something most of us were never taught about in school. What\'s one thing about it that surprised you when you first learned it?',
-      'CBD, CBG, CBN, CBC — there are so many cannabinoids. If you\'ve tried more than one, did you notice different effects? Which one has been most interesting to you?'
-    ]
+      'Who\'s putting out the best flower right now? Any vendor that\'s been consistently impressing you lately — or one that fell off?',
+      'What makes you loyal to a vendor? Is it cure quality, genetics, pricing, customer service, or something else? Have you ever switched your go-to and why?',
+      'Small-batch vs. larger operations — do you notice a real quality difference, or is it more about the story? Who\'s doing small-batch right?',
+    ],
   },
   {
-    theme: 'Hemp 101',
+    theme: 'Cultivar & Genetics',
     prompts: [
-      'What\'s something about hemp that you wish more people understood? A lot of folks still confuse it with marijuana — how do you explain the difference to someone new?',
-      'Hemp has been used by humans for thousands of years — rope, clothing, food, medicine. What use of hemp surprised you the most when you first discovered it?',
-      'If you could go back and give yourself one piece of advice when you were first learning about hemp, what would it be?'
-    ]
+      'What cultivar has surprised you the most — something you didn\'t expect to like but ended up being a top shelf experience? What stood out about it?',
+      'If you could only smoke one cultivar for a month straight, what would it be and why? Bonus points if it\'s something under the radar.',
+      'Indoor vs. outdoor vs. greenhouse — does the grow matter more than the genetics to you, or is it all about the cultivar? What\'s your ideal combo?',
+    ],
   },
   {
-    theme: 'Science & Research',
+    theme: 'Cure, Nose & Quality',
     prompts: [
-      'Research on cannabinoids is still pretty new compared to other medicines. Is there a specific condition or use case you\'d love to see more clinical studies on?',
-      'The entourage effect — the idea that cannabinoids work better together than in isolation — is fascinating. Have you noticed a difference between full-spectrum and isolate products?',
-      'Hemp seeds are packed with omega-3s, complete proteins, and more. Did you know about the nutritional side of hemp before joining this community? What got you interested?'
-    ]
+      'What\'s your ideal cure situation? How do you judge whether a batch was cured well vs. rushed? Any vendors who consistently nail the cure?',
+      'Let\'s talk nose — what terpene profiles do you gravitate toward? Are you a citrus/pine person, a gas/fuel person, or something else? Best nose you\'ve had recently?',
+      'How much weight do you put on COAs when choosing flower? Do you look at specific cannabinoid or terpene numbers, or is it more about the overall vibe of the bud?',
+    ],
   },
   {
-    theme: 'Hemp & The Environment',
+    theme: 'Effects & Use',
     prompts: [
-      'Hemp is often called one of the most eco-friendly crops on earth — it improves soil, needs little water, and absorbs CO₂. Did you know this before getting into hemp? What drew you in?',
-      'Hempcrete, hemp plastic, hemp fabric — industrial hemp could replace a lot of environmentally harmful materials. Which application do you think has the most potential?',
-      'If hemp farming became mainstream in your region, what do you think the biggest positive impact on the local environment would be?'
-    ]
+      'What do you primarily use hemp flower for — relaxation, sleep, anxiety, pain, focus, or just enjoyment? Has your reason changed over time?',
+      'CBD vs. CBG vs. THCA vs. blends — what\'s your go-to cannabinoid profile and why? Do you mix strains to dial in effects?',
+      'Joints, dry herb vape, bong, pipe — what\'s your preferred method and how does it change the experience for you? Any method you tried and went back on?',
+    ],
   },
   {
-    theme: 'Your Hemp Journey',
+    theme: 'Community & Culture',
     prompts: [
-      'Everyone starts somewhere! What first got you curious about hemp — was it for wellness, curiosity, sustainability, or something else entirely?',
-      'Has hemp changed anything in your daily routine or lifestyle? Even small things count — like adding hemp seeds to breakfast or using a CBD balm.',
-      'What\'s a question about hemp you had early on that took you a while to find a good answer to? Let\'s help someone else who might be wondering the same thing!'
-    ]
-  }
+      'What got you into hemp flower specifically (vs. other forms of CBD or cannabis)? Was there a specific moment or product that clicked for you?',
+      'How do you explain hemp flower to someone who doesn\'t know the space? Do people in your life get it, or do you still get weird looks?',
+      'What\'s something you wish was different about the hemp flower market right now — pricing, regulations, availability, quality standards, something else?',
+    ],
+  },
 ];
 
-const GREETINGS = [
-  'Good morning, everyone! ☀️',
-  'Hey hemp community! 🌿',
-  'Happy Hemp Day! 🌱',
-  'Good morning! Pull up a chair — let\'s learn something together. 🌾',
-  'Morning! No question is too basic here — let\'s dig in. 💚'
-];
+// ─── Prompt selection ───────────────────────────────────────────────
 
-// Returns date parts in Central time without relying on toLocaleDateString
+// Returns date parts in Central time (CDT approximation)
 function getCentralDateParts() {
-  // CDT = UTC-5, CST = UTC-6
-  // Approximate with UTC-5 (CDT) — close enough for display
   const now = new Date();
   const centralMs = now.getTime() - (5 * 60 * 60 * 1000);
   const d = new Date(centralMs);
@@ -68,23 +65,53 @@ function getCentralDateParts() {
     dayNum: d.getUTCDate(),
     month: months[d.getUTCMonth()],
     year: d.getUTCFullYear(),
-    dayOfWeek: d.getUTCDay()
+    dayOfWeek: d.getUTCDay(),
+    weekOfYear: Math.ceil((d.getTime() - new Date(d.getUTCFullYear(), 0, 1).getTime()) / 604800000),
   };
 }
 
-export async function generateDiscussionPrompt() {
-  const { dayName, dayNum, month, year, dayOfWeek } = getCentralDateParts();
+export async function generateDiscussionPrompt(env) {
+  const { dayName, dayNum, month, year, weekOfYear } = getCentralDateParts();
 
-  const topicIndex = dayOfWeek % DISCUSSION_TOPICS.length;
+  // Rotate through topics by week number to get variety
+  const topicIndex = weekOfYear % DISCUSSION_TOPICS.length;
   const topic = DISCUSSION_TOPICS[topicIndex];
-  const prompt = topic.prompts[dayNum % topic.prompts.length];
-  const greeting = GREETINGS[dayNum % GREETINGS.length];
+
+  // Pick a prompt within the topic, varying by day-of-month
+  const promptIndex = dayNum % topic.prompts.length;
+  let prompt = topic.prompts[promptIndex];
+
+  // Check KV for recently used prompts to avoid repeats
+  if (env?.HEMP_KV) {
+    try {
+      const historyRaw = await env.HEMP_KV.get('discussion_history');
+      const history = historyRaw ? JSON.parse(historyRaw) : [];
+      const key = `${topicIndex}:${promptIndex}`;
+
+      if (history.includes(key)) {
+        // Try next prompt in the topic
+        const altIndex = (promptIndex + 1) % topic.prompts.length;
+        const altKey = `${topicIndex}:${altIndex}`;
+        if (!history.includes(altKey)) {
+          prompt = topic.prompts[altIndex];
+        }
+        // If both are used, just use the original — it's been a while
+      }
+
+      // Update history (keep last 10 entries)
+      const newKey = `${topicIndex}:${promptIndex}`;
+      const updated = [...history.filter(k => k !== newKey), newKey].slice(-10);
+      await env.HEMP_KV.put('discussion_history', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Discussion history KV error:', e.message);
+    }
+  }
 
   return {
     theme: topic.theme,
-    question: `${greeting}\n\n${prompt}`,
-    threadTitle: `${dayName} Discussion — ${month} ${dayNum}`,
-    date: `${dayName}, ${month} ${dayNum}, ${year}`
+    question: prompt,
+    threadTitle: `${dayName} Discussion — ${topic.theme}`,
+    date: `${dayName}, ${month} ${dayNum}, ${year}`,
   };
 }
 

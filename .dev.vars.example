@@ -6,6 +6,14 @@ DISCORD_APPLICATION_ID=your-application-id-here
 # Together AI (get a free key at together.ai)
 TOGETHER_API_KEY=your-together-api-key-here
 
-# Target Server & Channel
-DISCORD_TEST_GUILD_ID=your-guild-id-here
-DISCORD_TEST_CHANNEL_ID=your-channel-id-here
+# Channel Configuration
+RESEARCH_CHANNEL_ID=your-research-channel-id
+DISCUSSION_CHANNEL_ID=your-discussion-channel-id
+PULSE_CHANNEL_ID=your-pulse-output-channel-id
+
+# Community Pulse — comma-separated list of channel IDs the bot reads for pulse analysis
+# Only channels explicitly listed here will be read. No other channels are accessed.
+PULSE_SOURCE_CHANNEL_IDS=channel-id-1,channel-id-2,channel-id-3
+
+# Optional: separate channel for industry/trade news (not flower-focused)
+# INDUSTRY_CHANNEL_ID=your-industry-channel-id
