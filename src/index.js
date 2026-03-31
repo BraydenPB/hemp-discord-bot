@@ -147,11 +147,11 @@ async function handleCommand(interaction, env, ctx) {
 
       case 'pulse':
         ctx.waitUntil(deferredPulse(interaction, env));
-        return Response.json({ type: 5, data: { flags: 64 } });
+        return Response.json({ type: 5 });
 
       case 'test-discussion':
         ctx.waitUntil(deferredTestDiscussion(interaction, env));
-        return Response.json({ type: 5, data: { flags: 64 } });
+        return Response.json({ type: 5 });
 
       case 'status': {
         const [lastResearch, lastDiscussion, lastPulse] = await Promise.all([

@@ -12,8 +12,10 @@ export const AI_API_URL = 'https://api.together.xyz/v1/chat/completions';
 // ─── News Sources ───────────────────────────────────────────────────
 // PRIMARY: flower/vendor/community-focused feeds (shown in main feed)
 export const FLOWER_NEWS_SOURCES = [
-  { name: 'Hemp Benchmarks',    url: 'https://www.hempbenchmarks.com/feed/' },
+  { name: 'Ministry of Hemp',   url: 'https://ministryofhemp.com/feed/' },
   { name: 'Ganjapreneur Hemp',  url: 'https://ganjapreneur.com/news/industry/hemp/feed/' },
+  { name: 'CBD Oracle',         url: 'https://cbdoracle.com/feed/' },
+  { name: 'Hemp Benchmarks',    url: 'https://www.hempbenchmarks.com/feed/' },
 ];
 
 // SECONDARY: industrial/trade press (optional "industry" feed, not main)
@@ -69,7 +71,7 @@ export const FLOWER_LEGISLATION_KEYWORDS = [
 // ─── PubMed Search ──────────────────────────────────────────────────
 // Tailored to flower-consumer-relevant research
 export const PUBMED_QUERY =
-  '(cannabidiol OR CBD OR cannabigerol OR CBG OR "hemp flower" OR "Cannabis sativa" smoke OR inhalation) AND (anxiety OR sleep OR pain OR inflammation OR relaxation OR bioavailability)';
+  '(cannabidiol OR CBD OR cannabigerol OR CBG OR "hemp flower" OR "Cannabis sativa" OR inhalation OR smoking) AND (anxiety OR sleep OR pain OR inflammation OR relaxation OR bioavailability)';
 export const PUBMED_RELDATE = 90; // days lookback
 
 // ─── ClinicalTrials.gov ─────────────────────────────────────────────
@@ -121,6 +123,9 @@ export const QUALITY_DESCRIPTORS = [
 
 // Community pulse KV key prefix for per-channel cursors
 export const PULSE_CURSOR_PREFIX = 'COMMUNITY_PULSE_CURSOR:';
+
+// Minimum messages required to post a pulse (skip if below this)
+export const PULSE_MIN_MESSAGES = 3;
 
 // ─── Scheduling ─────────────────────────────────────────────────────
 

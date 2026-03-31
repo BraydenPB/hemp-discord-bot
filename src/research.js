@@ -314,5 +314,3 @@ function byRelevanceThenDate(a, b) {
   if (rDiff !== 0) return rDiff;
   return byDate(a, b);
 }
-
-export { FLOWER_NEWS_SOURCES, INDUSTRY_NEWS_SOURCES } from './config.js';

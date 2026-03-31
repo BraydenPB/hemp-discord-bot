@@ -2,7 +2,9 @@ name = "hemp-discord-bot"
 main = "src/index.js"
 compatibility_date = "2026-03-10"
 compatibility_flags = ["nodejs_compat"]
-account_id = "75620f084ea25ade5ee57a71a830bba2"
+# Set via: export CLOUDFLARE_ACCOUNT_ID=your-account-id
+# Or uncomment and fill in:
+# account_id = "your-account-id-here"
 
 # Cron triggers (UTC) — CDT = UTC-5
 #   11:00 = 6am CDT  — daily research / discussion

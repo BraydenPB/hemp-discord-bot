@@ -9,7 +9,7 @@
 
 import {
   KNOWN_VENDORS, KNOWN_CULTIVARS, QUALITY_DESCRIPTORS,
-  PULSE_CURSOR_PREFIX, AI_API_URL, AI_MODEL, COLORS,
+  PULSE_CURSOR_PREFIX, PULSE_MIN_MESSAGES, AI_API_URL, AI_MODEL, COLORS,
 } from './config.js';
 
 // ─── Discord message fetching ───────────────────────────────────────
@@ -37,15 +37,9 @@ async function fetchMessagesSince(channelId, afterMessageId, token) {
       { headers: { Authorization: `Bot ${token}` } }
     );
 
-    // Retry once on rate limit (429)
     if (res.status === 429) {
-      const retryAfter = parseFloat(res.headers.get('Retry-After') || '2') * 1000;
-      console.log(`Pulse: rate limited on ch ${channelId}, waiting ${retryAfter}ms`);
-      await new Promise(r => setTimeout(r, Math.min(retryAfter, 10000)));
-      res = await fetch(
-        `${DISCORD_API}/channels/${channelId}/messages?${params}`,
-        { headers: { Authorization: `Bot ${token}` } }
-      );
+      console.warn(`Pulse: rate limited on ch ${channelId}, skipping remaining pages`);
+      break;
     }
 
     if (!res.ok) {
@@ -350,7 +344,7 @@ export async function runCommunityPulse(env) {
   allMessages = null;
 
   // Step 4: Skip posting if very low activity
-  if (aggregation.messageCount < 3) {
+  if (aggregation.messageCount < PULSE_MIN_MESSAGES) {
     console.log('Pulse: too few messages to post — updating cursors only');
     await updateCursors(env, newCursors);
     return null;

@@ -5,8 +5,6 @@
  * effects, COAs, consumption methods, and the culture of smokable hemp.
  */
 
-import { COLORS } from './config.js';
-
 const DISCUSSION_TOPICS = [
   {
     theme: 'Vendor Talk',
@@ -81,7 +79,7 @@ function getCentralDateParts() {
     month: months[d.getUTCMonth()],
     year: d.getUTCFullYear(),
     dayOfWeek: d.getUTCDay(),
-    weekOfYear: Math.ceil((d.getTime() - new Date(d.getUTCFullYear(), 0, 1).getTime()) / 604800000),
+    weekOfYear: Math.ceil((d.getTime() - Date.UTC(d.getUTCFullYear(), 0, 1)) / 604800000),
   };
 }
 

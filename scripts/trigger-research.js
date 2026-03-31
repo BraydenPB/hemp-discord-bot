@@ -46,7 +46,8 @@ async function run() {
 
   if (todayCategory === 'discussion') {
     console.log('Generating discussion prompt...');
-    const prompt = await generateDiscussionPrompt();
+    // No KV available in local scripts — pass no env so dedup is skipped gracefully
+    const prompt = await generateDiscussionPrompt(null);
     console.log(`\nPrompt: ${prompt.question}\nThread: ${prompt.threadTitle}\n`);
 
     const msgRes = await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages`, {
