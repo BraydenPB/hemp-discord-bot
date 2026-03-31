@@ -52,10 +52,25 @@ const DISCUSSION_TOPICS = [
 
 // ─── Prompt selection ───────────────────────────────────────────────
 
-// Returns date parts in Central time (CDT approximation)
+// US DST: 2nd Sunday of March 2:00 AM local → 1st Sunday of November 2:00 AM local
+function isUSDST(date) {
+  const year = date.getUTCFullYear();
+  // 2nd Sunday of March: find first Sunday of March, then add 7
+  const mar1Day = new Date(Date.UTC(year, 2, 1)).getUTCDay();
+  const marSecondSun = 1 + (7 - mar1Day) % 7 + 7;
+  const dstStart = new Date(Date.UTC(year, 2, marSecondSun, 8)); // 2am CST = 8am UTC
+  // 1st Sunday of November
+  const nov1Day = new Date(Date.UTC(year, 10, 1)).getUTCDay();
+  const novFirstSun = 1 + (7 - nov1Day) % 7;
+  const dstEnd = new Date(Date.UTC(year, 10, novFirstSun, 7)); // 2am CDT = 7am UTC
+  return date >= dstStart && date < dstEnd;
+}
+
+// Returns date parts in US Central time (CST/CDT)
 function getCentralDateParts() {
   const now = new Date();
-  const centralMs = now.getTime() - (5 * 60 * 60 * 1000);
+  const offsetHours = isUSDST(now) ? 5 : 6; // CDT = UTC-5, CST = UTC-6
+  const centralMs = now.getTime() - (offsetHours * 60 * 60 * 1000);
   const d = new Date(centralMs);
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const months = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -88,19 +103,20 @@ export async function generateDiscussionPrompt(env) {
       const history = historyRaw ? JSON.parse(historyRaw) : [];
       const key = `${topicIndex}:${promptIndex}`;
 
+      let usedKey = key;
       if (history.includes(key)) {
         // Try next prompt in the topic
         const altIndex = (promptIndex + 1) % topic.prompts.length;
         const altKey = `${topicIndex}:${altIndex}`;
         if (!history.includes(altKey)) {
           prompt = topic.prompts[altIndex];
+          usedKey = altKey;
         }
         // If both are used, just use the original — it's been a while
       }
 
-      // Update history (keep last 10 entries)
-      const newKey = `${topicIndex}:${promptIndex}`;
-      const updated = [...history.filter(k => k !== newKey), newKey].slice(-10);
+      // Update history with the prompt actually used (keep last 10 entries)
+      const updated = [...history.filter(k => k !== usedKey), usedKey].slice(-10);
       await env.HEMP_KV.put('discussion_history', JSON.stringify(updated));
     } catch (e) {
       console.error('Discussion history KV error:', e.message);
