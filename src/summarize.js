@@ -16,17 +16,17 @@ export const CATEGORY_META = {
   legislation: {
     title: '⚖️ Legislative Update',
     color: 0xe76f51,
-    cta: '💬 How do you think these changes could affect hemp farmers or consumers?',
+    cta: '💬 How does this affect your ability to buy or ship flower? Sound off below.',
   },
   studies: {
     title: '🔬 Science Spotlight',
     color: 0x457b9d,
-    cta: '💬 Does this research change how you think about hemp?',
+    cta: '💬 Does this match what you've noticed from your own experience? Discuss below.',
   },
   trials: {
     title: '🧪 Trials Watch',
     color: 0x9b72cf,
-    cta: '💬 Which of these trials are you most hopeful about?',
+    cta: '💬 Would you participate in a trial like this? Drop your take below.',
   },
 };
 
