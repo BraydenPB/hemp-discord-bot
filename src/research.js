@@ -63,7 +63,7 @@ export async function fetchLegislation() {
         billId: `${bill.bill_type_label} ${bill.number}`,
         status: bill.current_status_description || bill.current_status,
         introduced: bill.introduced_date,
-        link: `https://www.govtrack.us${bill.link}`,
+        link: bill.link?.startsWith('http') ? bill.link : `https://www.govtrack.us${bill.link}`,
         source: 'GovTrack (Federal)'
       });
     }
@@ -197,7 +197,7 @@ function parseRSS(xml) {
     const link  = extractTag(x, 'link') || extractAtomLink(x);
     const pubDate = extractTag(x, 'pubDate') || extractTag(x, 'dc:date');
     const description = extractTag(x, 'description');
-    if (title && link) items.push({ title, link, pubDate, description });
+    if (title && link && isValidUrl(link)) items.push({ title, link: link.trim(), pubDate, description });
   }
   return { items };
 }
@@ -230,6 +230,10 @@ function dedupe(articles) {
 
 function byDate(a, b) {
   return new Date(b.pubDate || 0) - new Date(a.pubDate || 0);
+}
+
+function isValidUrl(str) {
+  return typeof str === 'string' && /^https?:\/\/.+/.test(str.trim());
 }
 
 export { NEWS_SOURCES, HEMP_KEYWORDS };
