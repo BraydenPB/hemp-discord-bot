@@ -1,7 +1,7 @@
 import { verifyKey } from './verify.js';
 import { fetchHempResearch } from './research.js';
 import { generateDiscussionPrompt } from './discussion.js';
-import { generateCategoryBrief, buildCategoryEmbed, generateDailyBrief, buildBriefEmbed, mdLink } from './summarize.js';
+import { generateCategoryBrief, buildCategoryEmbed, generateDailyBrief, buildBriefEmbed } from './summarize.js';
 import { runCommunityPulse } from './pulse.js';
 import { DAILY_ROTATION, SCHEDULE, COLORS } from './config.js';
 
@@ -258,56 +258,13 @@ async function postToChannel(channelId, payload, token) {
 
 function buildResearchEmbeds(research) {
   const embeds = [];
-  const ts = { footer: { text: `${new Date(research.fetchedAt).toUTCString()}` } };
-
-  if (research.news?.length) {
-    embeds.push({
-      title: 'Flower Feed',
-      color: COLORS.news,
-      description: research.news.slice(0, 5).map(a => `${mdLink(a.title, a.link)} — *${a.source}*`).join('\n'),
-      ...ts,
-    });
+  for (const category of ['news', 'legislation', 'studies', 'trials']) {
+    const items = research[category];
+    if (items?.length) {
+      const embed = buildCategoryEmbed(category, items, research.fetchedAt, null);
+      if (embed) embeds.push(embed);
+    }
   }
-
-  if (research.legislation?.length) {
-    embeds.push({
-      title: 'Regulation Watch',
-      color: COLORS.legislation,
-      fields: research.legislation.slice(0, 5).map(b => ({
-        name: `${b.billId} — ${b.status}`,
-        value: `${mdLink(b.title, b.link)}${b.flowerRelevant ? ' 🌿' : ''}`,
-        inline: false,
-      })),
-      ...ts,
-    });
-  }
-
-  if (research.studies?.length) {
-    embeds.push({
-      title: 'Research Drop',
-      color: COLORS.studies,
-      fields: research.studies.slice(0, 4).map(s => ({
-        name: s.journal || 'PubMed',
-        value: `${mdLink(s.title, s.link)}${s.authors ? `\n*${s.authors}*` : ''}`,
-        inline: false,
-      })),
-      ...ts,
-    });
-  }
-
-  if (research.trials?.length) {
-    embeds.push({
-      title: 'Trial Tracker',
-      color: COLORS.trials,
-      fields: research.trials.slice(0, 4).map(t => ({
-        name: t.org || 'Unknown Org',
-        value: `${mdLink(t.title, t.link)}\nStatus: ${t.status}`,
-        inline: false,
-      })),
-      ...ts,
-    });
-  }
-
   return embeds;
 }
 

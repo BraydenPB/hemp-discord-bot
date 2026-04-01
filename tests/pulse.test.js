@@ -74,10 +74,10 @@ describe('buildPulseEmbed', () => {
     };
 
     const embed = buildPulseEmbed(agg, 'The server is buzzing about Flow Gardens.');
-    expect(embed.title).toBe('Community Pulse');
+    expect(embed.title).toBe('📊 Community Pulse');
     expect(embed.description).toContain('Flow Gardens');
-    expect(embed.fields.length).toBe(3); // vendors, cultivars, quality
-    expect(embed.footer.text).toContain('47 messages');
+    expect(embed.fields.length).toBeGreaterThanOrEqual(3); // vendors, cultivars, quality (split pos/neg)
+    expect(embed.footer.text).toContain('47 msgs');
   });
 
   it('handles empty aggregation', () => {
@@ -92,7 +92,7 @@ describe('buildPulseEmbed', () => {
     };
 
     const embed = buildPulseEmbed(agg, null);
-    expect(embed.title).toBe('Community Pulse');
+    expect(embed.title).toBe('📊 Community Pulse');
     expect(embed.fields.length).toBe(0);
   });
 });

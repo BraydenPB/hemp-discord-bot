@@ -14,24 +14,28 @@ import { AI_API_URL, AI_MODEL, COLORS } from './config.js';
 
 export const CATEGORY_META = {
   news: {
-    title: 'Flower Feed',
+    title: '📰 Flower Feed',
     color: COLORS.news,
     cta: 'Anything here catch your eye? Drop your take below.',
+    fallbackDesc: 'Latest flower-relevant headlines from across the hemp space.',
   },
   legislation: {
-    title: 'Regulation Watch',
+    title: '⚖️ Regulation Watch',
     color: COLORS.legislation,
     cta: 'How does this affect flower availability where you are?',
+    fallbackDesc: 'Federal bills and regulatory filings that could impact hemp flower.',
   },
   studies: {
-    title: 'Research Drop',
+    title: '🔬 Research Drop',
     color: COLORS.studies,
     cta: 'Relevant to how you use flower? Share your thoughts.',
+    fallbackDesc: 'Recent cannabinoid research relevant to flower consumers.',
   },
   trials: {
-    title: 'Trial Tracker',
+    title: '🧪 Trial Tracker',
     color: COLORS.trials,
     cta: 'Any of these feel relevant to the flower community?',
+    fallbackDesc: 'Active clinical trials involving cannabinoids.',
   },
 };
 
@@ -95,15 +99,12 @@ export function buildCategoryEmbed(category, items, fetchedAt, brief) {
 
   const embed = {
     title: meta.title,
+    description: brief || meta.fallbackDesc,
     color: meta.color,
-    fields: [
-      ...buildCategoryFields(category, items),
-      { name: '\u200b', value: meta.cta, inline: false },
-    ],
-    footer: { text: `${new Date(fetchedAt).toUTCString()}` },
+    fields: buildCategoryFields(category, items),
+    footer: { text: `${meta.cta} · ${new Date(fetchedAt).toUTCString()}` },
   };
 
-  if (brief) embed.description = brief;
   return embed;
 }
 
@@ -116,16 +117,24 @@ export function mdLink(title, url) {
 
 function buildCategoryFields(category, items) {
   switch (category) {
-    case 'news':
-      return items.slice(0, 5).map(a => ({
-        name: a.source ?? 'News',
-        value: mdLink(a.title, a.link),
+    case 'news': {
+      // Group articles by source to avoid repetition
+      const bySource = new Map();
+      for (const a of items.slice(0, 5)) {
+        const src = a.source ?? 'News';
+        if (!bySource.has(src)) bySource.set(src, []);
+        bySource.get(src).push(a);
+      }
+      return [...bySource.entries()].map(([source, articles]) => ({
+        name: source,
+        value: articles.map(a => `> ${mdLink(a.title, a.link)}`).join('\n'),
         inline: false,
       }));
+    }
     case 'legislation':
       return items.slice(0, 5).map(b => ({
-        name: `${b.billId} — ${b.status}`,
-        value: `${mdLink(b.title, b.link)}${b.flowerRelevant ? ' 🌿' : ''}`,
+        name: `${b.flowerRelevant ? '🌿 ' : '📋 '}${b.billId} · ${b.status}`,
+        value: mdLink(b.title, b.link),
         inline: false,
       }));
     case 'studies':
@@ -134,12 +143,14 @@ function buildCategoryFields(category, items) {
         value: `${mdLink(s.title, s.link)}${s.authors ? `\n*${s.authors}*` : ''}`,
         inline: false,
       }));
-    case 'trials':
+    case 'trials': {
+      const statusIcon = { RECRUITING: '🟢', ACTIVE_NOT_RECRUITING: '🟡', COMPLETED: '✅' };
       return items.slice(0, 4).map(t => ({
         name: t.org ?? 'Clinical Trial',
-        value: `${mdLink(t.title, t.link)}\nStatus: ${t.status}`,
+        value: `${mdLink(t.title, t.link)}\n${statusIcon[t.status] ?? '⚪'} ${t.status}`,
         inline: false,
       }));
+    }
     default:
       return [];
   }

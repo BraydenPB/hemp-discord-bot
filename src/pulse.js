@@ -80,21 +80,52 @@ function countMentions(texts, knownTerms) {
   const counts = new Map();
   const lower = texts.map(t => t.toLowerCase());
 
-  for (const term of knownTerms) {
+  // Sort longest-first so we can deduplicate shorter substrings
+  const sorted = [...knownTerms].sort((a, b) => b.length - a.length);
+
+  for (const term of sorted) {
     let total = 0;
     const termLower = term.toLowerCase();
     for (const text of lower) {
-      // Use word-boundary-ish matching: check the term appears as a substring
-      // For multi-word terms this is fine; for single words we add boundary check
       if (termLower.includes(' ')) {
         if (text.includes(termLower)) total++;
       } else {
-        // Single-word: basic word boundary via regex
         const re = new RegExp(`\\b${escapeRegex(termLower)}\\b`);
         if (re.test(text)) total++;
       }
     }
     if (total > 0) counts.set(term, total);
+  }
+
+  // Deduplicate: if "mac" matched but only as part of "banana mac", subtract overlap
+  for (const [shorter, sCount] of [...counts]) {
+    const shorterLower = shorter.toLowerCase();
+    for (const [longer] of counts) {
+      if (shorter === longer) continue;
+      const longerLower = longer.toLowerCase();
+      if (!longerLower.includes(shorterLower)) continue;
+
+      let overlap = 0;
+      for (const text of lower) {
+        const matchesLonger = text.includes(longerLower);
+        const matchesShorter = shorterLower.includes(' ')
+          ? text.includes(shorterLower)
+          : new RegExp(`\\b${escapeRegex(shorterLower)}\\b`).test(text);
+        if (matchesLonger && matchesShorter) {
+          // Remove the longer term and recheck — if shorter no longer matches, it was a false positive
+          const stripped = text.replace(new RegExp(escapeRegex(longerLower), 'g'), '');
+          const still = shorterLower.includes(' ')
+            ? stripped.includes(shorterLower)
+            : new RegExp(`\\b${escapeRegex(shorterLower)}\\b`).test(stripped);
+          if (!still) overlap++;
+        }
+      }
+      if (overlap > 0) {
+        const adjusted = sCount - overlap;
+        if (adjusted <= 0) counts.delete(shorter);
+        else counts.set(shorter, adjusted);
+      }
+    }
   }
 
   return [...counts.entries()]
@@ -155,15 +186,20 @@ export function aggregateMessages(messages, channelIds) {
 
 const PULSE_SYSTEM_PROMPT = `You are a sharp, grounded member of a private hemp flower Discord — think someone who's tried dozens of vendors, cares about cure quality and terpene profiles, and keeps up with every drop.
 
-You're writing a brief "Community Pulse" summary of what the server has been talking about. Your job:
-- Highlight which vendors and cultivars are getting attention and why.
-- Note quality impressions (positive or negative) — frosty nugs, hay smell, great cure, seeded batches, etc.
-- Identify 2-4 distinct themes or conversations (e.g. "cure complaints about X", "hype around Y's new indoor drop", "debate about THCA vs CBD flower").
-- Keep it conversational and opinionated but fair — like a community regular catching someone up, not a news anchor.
+You're writing a brief "Community Pulse" that does TWO things:
+1. Quick snapshot of what's been buzzing (1-2 sentences max — vendors, cultivars, quality vibes).
+2. Spark NEW conversation by posing 1-2 provocative questions or hot takes that build on the current buzz. Think "if everyone's hyping vendor X, ask what makes their cure different" or "if people are debating THCA vs CBD, push them to get specific about effects."
+
+Your goal is to get people TALKING, not just recap what they already said.
+
+Rules:
+- Lead with the conversation-starter energy, not a summary.
+- Be specific — name vendors, cultivars, quality terms from the data.
+- Be opinionated but fair. Take a stance or ask a spicy question.
 - Do NOT quote individual users or use usernames.
-- Do NOT use bullet points or markdown formatting — write in short, natural paragraphs.
-- Keep it under 200 words.
-- If there's very little activity, say so briefly — don't pad.`;
+- Do NOT use bullet points or markdown formatting — write in short, punchy paragraphs.
+- Keep it under 150 words. Tight and punchy.
+- If there's very little activity, throw out a topic to get things going instead.`;
 
 /**
  * Generate an AI-powered summary from aggregated pulse data.
@@ -227,7 +263,7 @@ function buildPulseDigest(agg) {
     }
   }
 
-  lines.push('\nWrite a conversational summary capturing the vibe and key topics.');
+  lines.push('\nUse these signals to write a punchy pulse that sparks new discussion. Don\'t just recap — push the conversation forward with a hot take or question.');
   return lines.join('\n');
 }
 
@@ -241,46 +277,61 @@ export function buildPulseEmbed(aggregation, summary) {
 
   if (aggregation.vendors.length) {
     fields.push({
-      name: 'Vendors Getting Buzz',
+      name: '🏪 Vendors',
       value: aggregation.vendors.slice(0, 5)
-        .map(v => `**${v.name}** (${v.count})`)
-        .join(' · '),
-      inline: false,
+        .map(v => `**${v.name}** ×${v.count}`)
+        .join('\n'),
+      inline: true,
     });
   }
 
   if (aggregation.cultivars.length) {
     fields.push({
-      name: 'Cultivars in the Mix',
+      name: '🌱 Cultivars',
       value: aggregation.cultivars.slice(0, 5)
-        .map(c => `**${c.name}** (${c.count})`)
-        .join(' · '),
-      inline: false,
+        .map(c => `**${c.name}** ×${c.count}`)
+        .join('\n'),
+      inline: true,
     });
   }
 
-  if (aggregation.qualityTerms.length) {
-    const terms = aggregation.qualityTerms.slice(0, 8)
-      .map(q => {
-        const icon = q.sentiment === 'positive' ? '+' : '-';
-        return `${icon} ${q.term} (${q.count})`;
-      })
-      .join(' · ');
-    fields.push({
-      name: 'Quality Chatter',
-      value: terms,
-      inline: false,
-    });
+  const pos = aggregation.qualityTerms.filter(q => q.sentiment === 'positive');
+  const neg = aggregation.qualityTerms.filter(q => q.sentiment === 'negative');
+
+  if (pos.length || neg.length) {
+    // Row break before quality section
+    fields.push({ name: '\u200b', value: '\u200b', inline: false });
+    if (pos.length) {
+      fields.push({
+        name: '👍 Good Vibes',
+        value: pos.slice(0, 5).map(q => `${q.term} ×${q.count}`).join(' · '),
+        inline: true,
+      });
+    }
+    if (neg.length) {
+      fields.push({
+        name: '👎 Complaints',
+        value: neg.slice(0, 5).map(q => `${q.term} ×${q.count}`).join(' · '),
+        inline: true,
+      });
+    }
   }
+
+  // Compact time range for footer
+  const start = new Date(aggregation.window.start);
+  const end = new Date(aggregation.window.end);
+  const fmtShort = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const fmtTime = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' });
+  const range = fmtShort(start) === fmtShort(end)
+    ? `${fmtShort(start)}, ${fmtTime(start)} – ${fmtTime(end)} UTC`
+    : `${fmtShort(start)} – ${fmtShort(end)} UTC`;
 
   return {
-    title: 'Community Pulse',
-    description: summary || '_No summary available._',
+    title: '📊 Community Pulse',
+    description: summary || `${aggregation.messageCount} messages scanned — AI summary unavailable.`,
     color: COLORS.pulse,
     fields,
-    footer: {
-      text: `${aggregation.messageCount} messages · ${new Date(aggregation.window.start).toUTCString()} → ${new Date(aggregation.window.end).toUTCString()}`,
-    },
+    footer: { text: `${aggregation.messageCount} msgs · ${range}` },
   };
 }
 

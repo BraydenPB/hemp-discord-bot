@@ -56,6 +56,13 @@ export const DEPRIORITY_KEYWORDS = [
   'investment', 'ipo', 'stock', 'market cap', 'earnings',
   'pet cbd', 'dog treat', 'cat', 'horse',
   'press release', 'sponsored',
+  // Affiliate listicles & non-flower products
+  'best delta-9', 'best delta 9', 'best thc', 'best cbd oil',
+  'thc oil', 'thc capsule', 'thc gummy', 'thc gummies',
+  'thc edible', 'delta-9 oil', 'delta-9 capsule',
+  'top 10', 'top 5', 'best seed bank', 'seed bank',
+  'picks for', 'by the drop', 'consume daily',
+  'vape cart', 'vape pen', 'disposable',
 ];
 
 // Legislation keywords that directly impact flower consumers

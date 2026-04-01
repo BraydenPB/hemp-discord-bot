@@ -46,6 +46,11 @@ export function scoreRelevance(text) {
  * with general keywords.
  */
 function isFlowerRelevant(item) {
+  // Reject listicle/affiliate roundups regardless of description keywords
+  const titleLower = item.title.toLowerCase();
+  if (/^(the )?(best|top \d|picks for)\b/.test(titleLower)) return false;
+  if (/\b(to buy|to consume|by the drop|ranked|vs\.?$)\b/.test(titleLower)) return false;
+
   const text = `${item.title} ${item.description || ''}`;
   return scoreRelevance(text) >= 2;
 }
@@ -125,7 +130,7 @@ export async function fetchLegislation() {
       const entry = {
         title,
         billId: `${bill.bill_type_label} ${bill.number}`,
-        status: bill.current_status_description || bill.current_status,
+        status: formatStatusShort(bill.current_status),
         introduced: bill.introduced_date,
         link: bill.link.startsWith('http') ? bill.link : `https://www.govtrack.us${bill.link}`,
         source: 'GovTrack (Federal)',
@@ -161,6 +166,21 @@ export async function fetchLegislation() {
 
   // Sort flower-relevant legislation first
   return bills.sort((a, b) => (b.flowerRelevant ? 1 : 0) - (a.flowerRelevant ? 1 : 0));
+}
+
+function formatStatusShort(status) {
+  const map = {
+    introduced: 'Introduced',
+    referred: 'In Committee',
+    reported: 'Reported by Committee',
+    pass_over_house: 'Passed House',
+    pass_over_senate: 'Passed Senate',
+    passed_bill: 'Passed Both Chambers',
+    enacted_signed: 'Signed into Law',
+    enacted_veto_override: 'Enacted (Veto Override)',
+    vetoed_pocket: 'Pocket Vetoed',
+  };
+  return map[status] || status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Unknown';
 }
 
 function isLegislationFlowerRelevant(text) {
