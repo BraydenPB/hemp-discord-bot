@@ -6,7 +6,7 @@
  */
 
 // ─── Together AI ────────────────────────────────────────────────────
-export const AI_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
+export const AI_MODEL = 'deepseek-ai/DeepSeek-V3.1';
 export const AI_API_URL = 'https://api.together.xyz/v1/chat/completions';
 
 // ─── News Sources ───────────────────────────────────────────────────
