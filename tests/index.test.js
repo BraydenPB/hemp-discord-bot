@@ -25,9 +25,9 @@ describe('Config: schedule', () => {
     expect(typeof SCHEDULE.RESEARCH_HOUR_UTC).toBe('number');
   });
 
-  it('pulse hours is a non-empty array', () => {
-    expect(Array.isArray(SCHEDULE.PULSE_HOURS_UTC)).toBe(true);
-    expect(SCHEDULE.PULSE_HOURS_UTC.length).toBeGreaterThan(0);
+  it('pulse schedule has hour and day', () => {
+    expect(typeof SCHEDULE.PULSE_HOUR_UTC).toBe('number');
+    expect(typeof SCHEDULE.PULSE_DAY_UTC).toBe('number');
   });
 });
 

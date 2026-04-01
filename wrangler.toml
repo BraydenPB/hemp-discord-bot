@@ -7,11 +7,10 @@ compatibility_flags = ["nodejs_compat"]
 # account_id = "your-account-id-here"
 
 # Cron triggers (UTC) — CDT = UTC-5
-#   11:00 = 6am CDT  — daily research / discussion
-#   14:00 = 9am CDT  — community pulse
-#   22:00 = 5pm CDT  — community pulse
+#   11:00 = 6am CDT  — daily research / discussion (Mon–Fri)
+#   14:00 = 9am CDT  — community pulse (Sat only, filtered in code)
 [triggers]
-crons = ["0 11 * * *", "0 14 * * *", "0 22 * * *"]
+crons = ["0 11 * * *", "0 14 * * 6"]
 
 # KV namespace for storing research data, cursors, history
 [[kv_namespaces]]

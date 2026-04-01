@@ -38,8 +38,8 @@ export default {
       ctx.waitUntil(postDailyContent(env, dayUTC));
     }
 
-    // Community Pulse at configured hours
-    if (SCHEDULE.PULSE_HOURS_UTC.includes(hourUTC)) {
+    // Community Pulse — weekly
+    if (hourUTC === SCHEDULE.PULSE_HOUR_UTC && dayUTC === SCHEDULE.PULSE_DAY_UTC) {
       ctx.waitUntil(runPulse(env));
     }
   },
@@ -173,7 +173,7 @@ async function handleCommand(interaction, env, ctx) {
                 { name: 'Last Pulse', value: lastPulse ? fmtTs(lastPulse) : 'Never', inline: true },
                 { name: 'Today\'s Post', value: todayLabel, inline: true },
               ],
-              footer: { text: 'Mon: News · Tue: Regulation · Wed: Studies · Thu: Trials · Fri: Discussion · Pulse: 2x daily' },
+              footer: { text: 'Mon: News · Tue: Regulation · Wed: Studies · Thu: Trials · Fri: Discussion · Sat: Pulse' },
             }],
             flags: 64,
           },

@@ -132,7 +132,7 @@ export const QUALITY_DESCRIPTORS = [
 export const PULSE_CURSOR_PREFIX = 'COMMUNITY_PULSE_CURSOR:';
 
 // Minimum messages required to post a pulse (skip if below this)
-export const PULSE_MIN_MESSAGES = 3;
+export const PULSE_MIN_MESSAGES = 5;
 
 // ─── Scheduling ─────────────────────────────────────────────────────
 
@@ -149,7 +149,8 @@ export const DAILY_ROTATION = {
 // Cron hours (UTC) for different post types
 export const SCHEDULE = {
   RESEARCH_HOUR_UTC: 11,       // 6am CDT
-  PULSE_HOURS_UTC: [14, 22],   // 9am CDT, 5pm CDT (twice daily)
+  PULSE_HOUR_UTC: 14,          // 9am CDT, weekly on Saturday
+  PULSE_DAY_UTC: 6,            // 0=Sun, 6=Sat
 };
 
 // ─── Discord Embed Palette ──────────────────────────────────────────
