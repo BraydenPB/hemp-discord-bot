@@ -1,103 +1,74 @@
 /**
- * Discussion Prompt Generator
- * Uses KV-backed history to avoid repeats and optional AI rewriting for natural tone.
+ * Discussion Prompt Generator — tuned for connoisseur hemp flower community.
+ *
+ * Topics focus on: cultivars, cure, vendor experiences, terpene profiles,
+ * effects, COAs, consumption methods, and the culture of smokable hemp.
  */
-
-const TOGETHER_API_URL = 'https://api.together.xyz/v1/chat/completions';
-const MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
 
 const DISCUSSION_TOPICS = [
   {
-    theme: 'Wellness & Medicinal Uses',
+    theme: 'Vendor Talk',
     prompts: [
-      'Have you tried hemp or CBD for sleep, anxiety, or pain? What was your experience, and how long before you noticed anything?',
-      'The endocannabinoid system is something most of us never learned about in school. What surprised you most when you first heard about it?',
-      'CBD, CBG, CBN, CBC — if you\'ve tried more than one cannabinoid, did you notice different effects? Which has been most interesting to you?'
-    ]
+      'Who\'s putting out the best flower right now? Any vendor that\'s been consistently impressing you lately — or one that fell off?',
+      'What makes you loyal to a vendor? Is it cure quality, genetics, pricing, customer service, or something else? Have you ever switched your go-to and why?',
+      'Small-batch vs. larger operations — do you notice a real quality difference, or is it more about the story? Who\'s doing small-batch right?',
+    ],
   },
   {
-    theme: 'Hemp 101',
+    theme: 'Cultivar & Genetics',
     prompts: [
-      'What\'s something about hemp you wish more people understood? How do you explain the difference between hemp and marijuana to someone new?',
-      'Hemp has been used for thousands of years — rope, clothing, food, medicine. Which use surprised you most when you first discovered it?',
-      'If you could go back and give yourself one piece of advice when you were first learning about hemp, what would it be?'
-    ]
+      'What cultivar has surprised you the most — something you didn\'t expect to like but ended up being a top shelf experience? What stood out about it?',
+      'If you could only smoke one cultivar for a month straight, what would it be and why? Bonus points if it\'s something under the radar.',
+      'Indoor vs. outdoor vs. greenhouse — does the grow matter more than the genetics to you, or is it all about the cultivar? What\'s your ideal combo?',
+    ],
   },
   {
-    theme: 'Science & Research',
+    theme: 'Cure, Nose & Quality',
     prompts: [
-      'Cannabinoid research is still young compared to other fields. Is there a specific condition or use case you\'d like to see more clinical studies on?',
-      'The entourage effect — the idea that cannabinoids work better together than in isolation — is a big topic. Have you noticed a difference between full-spectrum and isolate products?',
-      'Hemp seeds are packed with omega-3s and complete proteins. Did you know about the nutritional side before joining this community?'
-    ]
+      'What\'s your ideal cure situation? How do you judge whether a batch was cured well vs. rushed? Any vendors who consistently nail the cure?',
+      'Let\'s talk nose — what terpene profiles do you gravitate toward? Are you a citrus/pine person, a gas/fuel person, or something else? Best nose you\'ve had recently?',
+      'How much weight do you put on COAs when choosing flower? Do you look at specific cannabinoid or terpene numbers, or is it more about the overall vibe of the bud?',
+    ],
   },
   {
-    theme: 'Hemp & The Environment',
+    theme: 'Effects & Use',
     prompts: [
-      'Hemp improves soil, needs little water, and absorbs CO2. Did you know about its environmental side before getting into hemp?',
-      'Hempcrete, hemp plastic, hemp fabric — industrial hemp could replace a lot of harmful materials. Which application do you think has the most potential?',
-      'If hemp farming became mainstream in your region, what do you think the biggest positive environmental impact would be?'
-    ]
+      'What do you primarily use hemp flower for — relaxation, sleep, anxiety, pain, focus, or just enjoyment? Has your reason changed over time?',
+      'CBD vs. CBG vs. THCA vs. blends — what\'s your go-to cannabinoid profile and why? Do you mix strains to dial in effects?',
+      'Joints, dry herb vape, bong, pipe — what\'s your preferred method and how does it change the experience for you? Any method you tried and went back on?',
+    ],
   },
   {
-    theme: 'Your Hemp Journey',
+    theme: 'Community & Culture',
     prompts: [
-      'What first got you curious about hemp — wellness, sustainability, curiosity, or something else entirely?',
-      'Has hemp changed anything in your daily routine? Even small things count — hemp seeds at breakfast, a CBD balm, anything.',
-      'What\'s a question about hemp you had early on that took a while to find a good answer to?'
-    ]
-  }
+      'What got you into hemp flower specifically (vs. other forms of CBD or cannabis)? Was there a specific moment or product that clicked for you?',
+      'How do you explain hemp flower to someone who doesn\'t know the space? Do people in your life get it, or do you still get weird looks?',
+      'What\'s something you wish was different about the hemp flower market right now — pricing, regulations, availability, quality standards, something else?',
+    ],
+  },
 ];
 
-const INTROS = [
-  'This week\'s question:',
-  'Let\'s talk about this:',
-  'Curious how you all feel about this:',
-  'Something worth discussing:',
-  'Here\'s one for the community:',
-];
+// ─── Prompt selection ───────────────────────────────────────────────
 
-// Flatten all prompts into a single indexed list
-const ALL_PROMPTS = DISCUSSION_TOPICS.flatMap((topic, tIndex) =>
-  topic.prompts.map((text, pIndex) => ({
-    id: `${tIndex}:${pIndex}`,
-    theme: topic.theme,
-    text,
-  }))
-);
-
-const DISCUSSION_SYSTEM_PROMPT = `You write one thoughtful, grounded discussion question each week for an online hemp community. No emojis, no marketing language, no exclamation marks. Ask a single open-ended question in 1-2 sentences, like you're talking to peers, not customers.`;
-
-async function aiRewritePrompt(basePrompt, theme, apiKey) {
-  const res = await fetch(TOGETHER_API_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 120,
-      temperature: 0.7,
-      messages: [
-        { role: 'system', content: DISCUSSION_SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: `Theme: ${theme}\nBase idea: ${basePrompt}\n\nWrite one improved discussion question. Output only the question.`,
-        },
-      ],
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Together AI error: ${res.status} ${await res.text()}`);
-  const data = await res.json();
-  return (data.choices?.[0]?.message?.content || basePrompt).trim();
+// US DST: 2nd Sunday of March 2:00 AM local → 1st Sunday of November 2:00 AM local
+function isUSDST(date) {
+  const year = date.getUTCFullYear();
+  // 2nd Sunday of March: find first Sunday of March, then add 7
+  const mar1Day = new Date(Date.UTC(year, 2, 1)).getUTCDay();
+  const marSecondSun = 1 + (7 - mar1Day) % 7 + 7;
+  const dstStart = new Date(Date.UTC(year, 2, marSecondSun, 8)); // 2am CST = 8am UTC
+  // 1st Sunday of November
+  const nov1Day = new Date(Date.UTC(year, 10, 1)).getUTCDay();
+  const novFirstSun = 1 + (7 - nov1Day) % 7;
+  const dstEnd = new Date(Date.UTC(year, 10, novFirstSun, 7)); // 2am CDT = 7am UTC
+  return date >= dstStart && date < dstEnd;
 }
 
-// Returns date parts in Central time without relying on toLocaleDateString
+// Returns date parts in US Central time (CST/CDT)
 function getCentralDateParts() {
   const now = new Date();
-  const centralMs = now.getTime() - (5 * 60 * 60 * 1000);
+  const offsetHours = isUSDST(now) ? 5 : 6; // CDT = UTC-5, CST = UTC-6
+  const centralMs = now.getTime() - (offsetHours * 60 * 60 * 1000);
   const d = new Date(centralMs);
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const months = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -107,51 +78,55 @@ function getCentralDateParts() {
     dayNum: d.getUTCDate(),
     month: months[d.getUTCMonth()],
     year: d.getUTCFullYear(),
-    dayOfWeek: d.getUTCDay()
+    dayOfWeek: d.getUTCDay(),
+    weekOfYear: Math.ceil((d.getTime() - Date.UTC(d.getUTCFullYear(), 0, 1)) / 604800000),
   };
-}
-
-function randomItem(list) {
-  return list[Math.floor(Math.random() * list.length)];
 }
 
 export async function generateDiscussionPrompt(env) {
-  const { dayName, dayNum, month, year } = getCentralDateParts();
+  const { dayName, dayNum, month, year, weekOfYear } = getCentralDateParts();
 
-  // Pick a prompt that hasn't been used recently (KV-backed history)
-  let history = [];
+  // Rotate through topics by week number to get variety
+  const topicIndex = weekOfYear % DISCUSSION_TOPICS.length;
+  const topic = DISCUSSION_TOPICS[topicIndex];
+
+  // Pick a prompt within the topic, varying by day-of-month
+  const promptIndex = dayNum % topic.prompts.length;
+  let prompt = topic.prompts[promptIndex];
+
+  // Check KV for recently used prompts to avoid repeats
   if (env?.HEMP_KV) {
-    const raw = await env.HEMP_KV.get('discussion_history');
-    history = raw ? JSON.parse(raw) : [];
-  }
-
-  const candidates = ALL_PROMPTS.filter(p => !history.includes(p.id));
-  const choice = candidates.length ? randomItem(candidates) : randomItem(ALL_PROMPTS);
-
-  // Store history — keep last 12 to avoid repeats for ~3 months of weekly posts
-  if (env?.HEMP_KV) {
-    const newHistory = [...history, choice.id].slice(-12);
-    await env.HEMP_KV.put('discussion_history', JSON.stringify(newHistory));
-  }
-
-  // Optionally rewrite the prompt with AI for more natural phrasing
-  let questionText = choice.text;
-  if (env?.TOGETHER_API_KEY) {
     try {
-      questionText = await aiRewritePrompt(choice.text, choice.theme, env.TOGETHER_API_KEY);
+      const historyRaw = await env.HEMP_KV.get('discussion_history');
+      const history = historyRaw ? JSON.parse(historyRaw) : [];
+      const key = `${topicIndex}:${promptIndex}`;
+
+      let usedKey = key;
+      if (history.includes(key)) {
+        // Try next prompt in the topic
+        const altIndex = (promptIndex + 1) % topic.prompts.length;
+        const altKey = `${topicIndex}:${altIndex}`;
+        if (!history.includes(altKey)) {
+          prompt = topic.prompts[altIndex];
+          usedKey = altKey;
+        }
+        // If both are used, just use the original — it's been a while
+      }
+
+      // Update history with the prompt actually used (keep last 10 entries)
+      const updated = [...history.filter(k => k !== usedKey), usedKey].slice(-10);
+      await env.HEMP_KV.put('discussion_history', JSON.stringify(updated));
     } catch (e) {
-      console.error('AI discussion rewrite failed:', e.message);
+      console.error('Discussion history KV error:', e.message);
     }
   }
 
-  const intro = randomItem(INTROS);
-
   return {
-    theme: choice.theme,
-    question: `${intro}\n\n${questionText}`,
-    threadTitle: `${dayName} Discussion — ${month} ${dayNum}`,
-    date: `${dayName}, ${month} ${dayNum}, ${year}`
+    theme: topic.theme,
+    question: prompt,
+    threadTitle: `${dayName} Discussion — ${topic.theme}`,
+    date: `${dayName}, ${month} ${dayNum}, ${year}`,
   };
 }
 
-export { DISCUSSION_TOPICS, ALL_PROMPTS };
+export { DISCUSSION_TOPICS };

@@ -2,15 +2,18 @@ name = "hemp-discord-bot"
 main = "src/index.js"
 compatibility_date = "2026-03-10"
 compatibility_flags = ["nodejs_compat"]
-account_id = "75620f084ea25ade5ee57a71a830bba2"
+# Set via: export CLOUDFLARE_ACCOUNT_ID=your-account-id
+# Or uncomment and fill in:
+# account_id = "your-account-id-here"
 
 # Cron triggers (UTC) — CDT = UTC-5
-# 6am CDT = 11:00 UTC | 8am CDT = 13:00 UTC
-# Note: shifts 1hr in winter (CST = UTC-6)
+#   11:00 = 6am CDT  — daily research / discussion
+#   14:00 = 9am CDT  — community pulse
+#   22:00 = 5pm CDT  — community pulse
 [triggers]
-crons = ["0 11 * * *"]
+crons = ["0 11 * * *", "0 14 * * *", "0 22 * * *"]
 
-# KV namespace for storing research data
+# KV namespace for storing research data, cursors, history
 [[kv_namespaces]]
 binding = "HEMP_KV"
 id = "67da35153de6428ab360bd415cc1e0c1"
@@ -19,6 +22,11 @@ id = "67da35153de6428ab360bd415cc1e0c1"
 # - DISCORD_TOKEN
 # - DISCORD_PUBLIC_KEY
 # - DISCORD_APPLICATION_ID
-# - DISCORD_TEST_CHANNEL_ID
-# - DISCORD_TEST_GUILD_ID
 # - TOGETHER_API_KEY
+#
+# Channel config (set via: wrangler secret put <NAME>)
+# - RESEARCH_CHANNEL_ID        — where daily research posts go
+# - DISCUSSION_CHANNEL_ID      — where weekly discussions go
+# - PULSE_CHANNEL_ID           — where community pulse embeds go
+# - PULSE_SOURCE_CHANNEL_IDS   — comma-separated channel IDs to read for pulse
+# - INDUSTRY_CHANNEL_ID        — (optional) separate channel for industry news

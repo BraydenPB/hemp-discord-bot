@@ -13,20 +13,11 @@
 import { fetchHempResearch } from '../src/research.js';
 import { generateDiscussionPrompt } from '../src/discussion.js';
 import { generateCategoryBrief, buildCategoryEmbed } from '../src/summarize.js';
+import { DAILY_ROTATION } from '../src/config.js';
 
 const TOKEN      = process.env.DISCORD_TOKEN;
 const API_KEY    = process.env.TOGETHER_API_KEY;
-const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || '1402343569083207785';
-
-const DAILY_ROTATION = {
-  0: null,           // Sunday — off
-  1: 'news',         // Monday
-  2: 'legislation',  // Tuesday
-  3: 'studies',      // Wednesday
-  4: 'trials',       // Thursday
-  5: 'discussion',   // Friday
-  6: null,           // Saturday — off
-};
+const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || process.env.RESEARCH_CHANNEL_ID || '1402343569083207785';
 
 // Parse --category flag
 const args = process.argv.slice(2);
@@ -38,16 +29,16 @@ const todayCategory = categoryFlag ?? DAILY_ROTATION[new Date().getUTCDay()];
 async function post(content) {
   const res = await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages`, {
     method: 'POST',
-    headers: { 'Authorization': `Bot ${TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(content)
+    headers: { Authorization: `Bot ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(content),
   });
-  if (!res.ok) console.error('❌ Post failed:', await res.text());
+  if (!res.ok) console.error('Post failed:', await res.text());
   return res.ok;
 }
 
 async function run() {
   if (!todayCategory) {
-    console.log('Today is a weekend — no post scheduled. Use --category to override.');
+    console.log('No post scheduled for this day. Use --category to override.');
     return;
   }
 
@@ -55,36 +46,34 @@ async function run() {
 
   if (todayCategory === 'discussion') {
     console.log('Generating discussion prompt...');
-    const prompt = await generateDiscussionPrompt();
+    // No KV available in local scripts — pass no env so dedup is skipped gracefully
+    const prompt = await generateDiscussionPrompt(null);
     console.log(`\nPrompt: ${prompt.question}\nThread: ${prompt.threadTitle}\n`);
 
-    // Post the message and create a thread on it
     const msgRes = await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages`, {
       method: 'POST',
-      headers: { 'Authorization': `Bot ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: prompt.question })
+      headers: { Authorization: `Bot ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: prompt.question }),
     });
     if (msgRes.ok) {
       const msg = await msgRes.json();
       await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/${msg.id}/threads`, {
         method: 'POST',
-        headers: { 'Authorization': `Bot ${TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: prompt.threadTitle, auto_archive_duration: 1440, type: 11 })
+        headers: { Authorization: `Bot ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: prompt.threadTitle, auto_archive_duration: 1440, type: 11 }),
       });
-    } else {
-      console.error('❌ Discussion post failed:', await msgRes.text());
     }
-    console.log('✅ Done!');
+    console.log('Done!');
     return;
   }
 
-  console.log('Fetching hemp research...');
+  console.log('Fetching hemp flower research...');
   const research = await fetchHempResearch();
   const items = research[todayCategory] ?? [];
   console.log(`Fetched ${items.length} ${todayCategory} items`);
 
   if (!items.length) {
-    console.log('No data found for this category today.');
+    console.log('No data found for this category.');
     return;
   }
 
@@ -101,7 +90,7 @@ async function run() {
 
   const embed = buildCategoryEmbed(todayCategory, items, research.fetchedAt, brief);
   await post({ embeds: [embed] });
-  console.log('✅ Done!');
+  console.log('Done!');
 }
 
 run().catch(err => { console.error(err); process.exit(1); });

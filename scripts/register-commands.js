@@ -8,20 +8,24 @@
 const commands = [
   {
     name: 'ping',
-    description: 'Check if the bot is responsive'
+    description: 'Check if the bot is responsive',
   },
   {
     name: 'research',
-    description: 'Fetch the latest hemp industry research'
+    description: 'Fetch the latest hemp flower research',
+  },
+  {
+    name: 'pulse',
+    description: 'Trigger a Community Pulse analysis now',
   },
   {
     name: 'test-discussion',
-    description: 'Test posting a discussion message (admin only)'
+    description: 'Test posting a discussion message (admin only)',
   },
   {
     name: 'status',
-    description: 'Check the bot status and last activity'
-  }
+    description: 'Check the bot status and last activity',
+  },
 ];
 
 async function registerCommands() {
@@ -36,7 +40,6 @@ async function registerCommands() {
     process.exit(1);
   }
 
-  // Register commands globally (or to specific guild for testing)
   const url = guildId
     ? `https://discord.com/api/v10/applications/${applicationId}/guilds/${guildId}/commands`
     : `https://discord.com/api/v10/applications/${applicationId}/commands`;
@@ -48,10 +51,10 @@ async function registerCommands() {
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bot ${token}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bot ${token}`,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(commands)
+      body: JSON.stringify(commands),
     });
 
     if (!response.ok) {
