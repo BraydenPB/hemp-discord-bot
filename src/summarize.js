@@ -1,6 +1,6 @@
 /**
  * AI-powered research summarizer using Together AI.
- * Model: meta-llama/Llama-3.3-70B-Instruct-Turbo
+ * Model configured in config.js (AI_MODEL)
  *
  * All prompts are tuned for a connoisseur smokable hemp flower audience —
  * experienced enthusiasts who care about cultivars, cure quality, vendor

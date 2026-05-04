@@ -6,8 +6,8 @@
  */
 
 // ─── Together AI ────────────────────────────────────────────────────
-export const AI_MODEL = 'deepseek-ai/DeepSeek-V3.1';
-export const AI_API_URL = 'https://api.together.xyz/v1/chat/completions';
+export const AI_MODEL = 'glm-4.7-flash';
+export const AI_API_URL = 'https://api.z.ai/api/paas/v4/chat/completions';
 
 // ─── News Sources ───────────────────────────────────────────────────
 // PRIMARY: flower/vendor/community-focused feeds (shown in main feed)
