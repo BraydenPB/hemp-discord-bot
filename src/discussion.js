@@ -5,6 +5,16 @@
  * effects, COAs, consumption methods, and the culture of smokable hemp.
  */
 
+// One-off date overrides for special-topic Fridays. Keys are 'YYYY-MM-DD' in
+// US Central time. When today matches, the override skips the normal rotation
+// and KV history entirely.
+const DATE_OVERRIDES = {
+  '2026-05-08': {
+    theme: 'Edibles',
+    question: 'Edibles edition — let\'s hear how you actually consume. What cannabinoid (or ratio) do you reach for in an edible: straight Δ9, CBD-dominant, 1:1, CBN blends for sleep, THCv for daytime, full spectrum? And on the form/flavor side — gummies, chocolate, hard candy, drinks, baked, capsules — what actually delivers for you, and which brands are nailing flavor instead of masking that hempy aftertaste?',
+  },
+};
+
 const DISCUSSION_TOPICS = [
   {
     theme: 'Vendor Talk',
@@ -76,6 +86,7 @@ function getCentralDateParts() {
   return {
     dayName: days[d.getUTCDay()],
     dayNum: d.getUTCDate(),
+    monthIndex: d.getUTCMonth(),
     month: months[d.getUTCMonth()],
     year: d.getUTCFullYear(),
     dayOfWeek: d.getUTCDay(),
@@ -84,7 +95,18 @@ function getCentralDateParts() {
 }
 
 export async function generateDiscussionPrompt(env) {
-  const { dayName, dayNum, month, year, weekOfYear } = getCentralDateParts();
+  const { dayName, dayNum, monthIndex, month, year, weekOfYear } = getCentralDateParts();
+
+  const dateKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+  const override = DATE_OVERRIDES[dateKey];
+  if (override) {
+    return {
+      theme: override.theme,
+      question: override.question,
+      threadTitle: `${dayName} Discussion — ${override.theme}`,
+      date: `${dayName}, ${month} ${dayNum}, ${year}`,
+    };
+  }
 
   // Rotate through topics by week number to get variety
   const topicIndex = weekOfYear % DISCUSSION_TOPICS.length;
@@ -129,4 +151,4 @@ export async function generateDiscussionPrompt(env) {
   };
 }
 
-export { DISCUSSION_TOPICS };
+export { DISCUSSION_TOPICS, DATE_OVERRIDES };
