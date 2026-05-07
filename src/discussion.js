@@ -11,7 +11,7 @@
 const DATE_OVERRIDES = {
   '2026-05-08': {
     theme: 'Edibles',
-    question: 'Edibles edition — let\'s hear how you actually consume. What cannabinoid (or ratio) do you reach for in an edible: straight Δ9, CBD-dominant, 1:1, CBN blends for sleep, THCv for daytime, full spectrum? And on the form/flavor side — gummies, chocolate, hard candy, drinks, baked, capsules — what actually delivers for you, and which brands are nailing flavor instead of masking that hempy aftertaste?',
+    question: 'Edibles week. What cannabinoid or ratio do you actually reach for (straight Δ9, 1:1, CBD-heavy, CBN for sleep, THCv for daytime, full spectrum)? What form works best (gummies, chocolate, hard candy, drinks, baked, capsules)? And is anyone actually nailing flavor without the hempy aftertaste?',
   },
 };
 
