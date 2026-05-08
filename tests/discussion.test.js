@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateDiscussionPrompt, DISCUSSION_TOPICS } from '../src/discussion.js';
+import { generateDiscussionPrompt, DISCUSSION_TOPICS, DATE_OVERRIDES } from '../src/discussion.js';
 
 describe('generateDiscussionPrompt', () => {
   it('returns all required fields', async () => {
@@ -24,7 +24,10 @@ describe('generateDiscussionPrompt', () => {
 
   it('theme matches a known topic', async () => {
     const p = await generateDiscussionPrompt();
-    const knownThemes = DISCUSSION_TOPICS.map(t => t.theme);
+    const knownThemes = [
+      ...DISCUSSION_TOPICS.map(t => t.theme),
+      ...Object.values(DATE_OVERRIDES).map(o => o.theme),
+    ];
     expect(knownThemes).toContain(p.theme);
   });
 
