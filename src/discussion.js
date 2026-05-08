@@ -11,7 +11,7 @@
 const DATE_OVERRIDES = {
   '2026-05-08': {
     theme: 'Edibles',
-    question: 'Edibles week. What cannabinoid or ratio do you actually reach for (straight Δ9, 1:1, CBD-heavy, CBN for sleep, THCv for daytime, full spectrum)? What form works best (gummies, chocolate, hard candy, tinctures, drinks, baked, capsules)? And is anyone actually nailing flavor without the hempy aftertaste?',
+    question: 'What cannabinoid or ratio do you actually reach for (straight Δ9, 1:1, CBD-heavy, CBN for sleep, THCv for daytime, full spectrum)? What form works best (gummies, chocolate, hard candy, tinctures, drinks, baked, capsules)? And is anyone actually nailing flavor without the hempy aftertaste?',
   },
 };
 
